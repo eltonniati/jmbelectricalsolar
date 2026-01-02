@@ -70,11 +70,11 @@ const CartModal = ({ isOpen, onClose, items, onRemoveItem }: CartModalProps) => 
                 <div>
                   <h4 className="font-semibold">{item.name}</h4>
                   <p className="text-muted-foreground text-sm">
-                    ${item.price.toFixed(2)} × {item.quantity}
+                    R{item.price.toFixed(2)} × {item.quantity}
                   </p>
                 </div>
                 <div className="text-right">
-                  <strong>${(item.price * item.quantity).toFixed(2)}</strong>
+                  <strong>R{(item.price * item.quantity).toFixed(2)}</strong>
                   <button
                     onClick={() => onRemoveItem(item.id)}
                     className="block mt-1 text-accent text-sm hover:underline"
@@ -89,7 +89,7 @@ const CartModal = ({ isOpen, onClose, items, onRemoveItem }: CartModalProps) => 
 
         <div className="p-6 bg-muted flex justify-between font-bold text-lg">
           <span>Total:</span>
-          <span>${total.toFixed(2)}</span>
+          <span>R{total.toFixed(2)}</span>
         </div>
 
         <div className="p-6">

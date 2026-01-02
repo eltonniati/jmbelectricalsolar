@@ -14,7 +14,7 @@ export const products: Product[] = [
     name: "Solar Panel Kit",
     description:
       "Complete 300W solar panel kit with inverter and mounting hardware.",
-    price: 299.99,
+    price: 5499.99,
     icon: SunMedium,
   },
   {
@@ -22,7 +22,7 @@ export const products: Product[] = [
     name: "EV Home Charger",
     description:
       "Level 2 electric vehicle home charging station with smart features.",
-    price: 549.99,
+    price: 9999.99,
     icon: BatteryCharging,
   },
   {
@@ -30,7 +30,7 @@ export const products: Product[] = [
     name: "LED Smart Bulbs (Pack of 4)",
     description:
       "Energy efficient smart bulbs compatible with Alexa and Google Home.",
-    price: 39.99,
+    price: 749.99,
     icon: Lightbulb,
   },
   {
@@ -38,7 +38,7 @@ export const products: Product[] = [
     name: "Electrician Tool Kit",
     description:
       "Professional-grade tool set for electrical work, including voltage tester.",
-    price: 189.99,
+    price: 3499.99,
     icon: Wrench,
   },
 ];
@@ -77,7 +77,7 @@ const Products = ({ onAddToCart }: ProductsProps) => {
                   {product.description}
                 </p>
                 <div className="text-2xl font-bold text-accent mb-4">
-                  ${product.price.toFixed(2)}
+                  R{product.price.toFixed(2)}
                 </div>
                 <button
                   onClick={() => onAddToCart(product)}
