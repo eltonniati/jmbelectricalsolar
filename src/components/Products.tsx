@@ -1,45 +1,67 @@
-import { SunMedium, BatteryCharging, Lightbulb, Wrench } from "lucide-react";
-
 export interface Product {
   id: string;
   name: string;
   description: string;
   price: number;
-  icon: React.ComponentType<{ className?: string }>;
+  image: string;
 }
 
 export const products: Product[] = [
   {
     id: "1",
-    name: "Solar Panel Kit",
-    description:
-      "Complete 300W solar panel kit with inverter and mounting hardware.",
-    price: 5499.99,
-    icon: SunMedium,
+    name: "550W Mono Solar Panel",
+    description: "High-efficiency monocrystalline solar panel for residential and commercial use.",
+    price: 2899.99,
+    image: "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400&h=300&fit=crop",
   },
   {
     id: "2",
-    name: "EV Home Charger",
-    description:
-      "Level 2 electric vehicle home charging station with smart features.",
-    price: 9999.99,
-    icon: BatteryCharging,
+    name: "5kW Hybrid Inverter",
+    description: "Hybrid solar inverter with battery backup support and WiFi monitoring.",
+    price: 18999.99,
+    image: "https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=400&h=300&fit=crop",
   },
   {
     id: "3",
-    name: "LED Smart Bulbs (Pack of 4)",
-    description:
-      "Energy efficient smart bulbs compatible with Alexa and Google Home.",
-    price: 749.99,
-    icon: Lightbulb,
+    name: "10kWh Lithium Battery",
+    description: "Long-lasting lithium-ion battery for solar energy storage.",
+    price: 45999.99,
+    image: "https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?w=400&h=300&fit=crop",
   },
   {
     id: "4",
-    name: "Electrician Tool Kit",
-    description:
-      "Professional-grade tool set for electrical work, including voltage tester.",
-    price: 3499.99,
-    icon: Wrench,
+    name: "Solar Panel Mounting Kit",
+    description: "Complete roof mounting system for 4-6 solar panels with all hardware.",
+    price: 1499.99,
+    image: "https://images.unsplash.com/photo-1558449028-b53a39d100fc?w=400&h=300&fit=crop",
+  },
+  {
+    id: "5",
+    name: "3kW Inverter",
+    description: "Pure sine wave inverter ideal for small homes and backup power.",
+    price: 8999.99,
+    image: "https://images.unsplash.com/photo-1597079910443-60c43fc25754?w=400&h=300&fit=crop",
+  },
+  {
+    id: "6",
+    name: "Solar Cable Kit (50m)",
+    description: "UV-resistant solar cables with MC4 connectors for panel connections.",
+    price: 899.99,
+    image: "https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?w=400&h=300&fit=crop",
+  },
+  {
+    id: "7",
+    name: "400W Poly Solar Panel",
+    description: "Affordable polycrystalline panel perfect for budget installations.",
+    price: 1899.99,
+    image: "https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?w=400&h=300&fit=crop",
+  },
+  {
+    id: "8",
+    name: "Solar Charge Controller 60A",
+    description: "MPPT charge controller for efficient battery charging.",
+    price: 2499.99,
+    image: "https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=400&h=300&fit=crop",
   },
 ];
 
@@ -53,10 +75,10 @@ const Products = ({ onAddToCart }: ProductsProps) => {
       <div className="container">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-poppins font-semibold text-secondary relative inline-block section-title-underline pb-4">
-            Shop Electrical Items
+            Solar & Electrical Products
           </h2>
           <p className="text-muted-foreground mt-6">
-            Quality electrical products for DIY and professional use
+            Quality solar panels, inverters, and accessories for your energy needs
           </p>
         </div>
 
@@ -66,8 +88,12 @@ const Products = ({ onAddToCart }: ProductsProps) => {
               key={product.id}
               className="bg-card text-card-foreground rounded-lg overflow-hidden shadow-md hover:-translate-y-3 hover:shadow-xl transition-all duration-300 group"
             >
-              <div className="h-48 bg-muted flex items-center justify-center overflow-hidden">
-                <product.icon className="w-32 h-32 text-muted-foreground/50 group-hover:scale-105 transition-transform duration-500" />
+              <div className="h-48 overflow-hidden">
+                <img
+                  src={product.image}
+                  alt={product.name}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
               </div>
               <div className="p-6">
                 <h3 className="text-lg font-poppins font-semibold mb-2">
