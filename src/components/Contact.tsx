@@ -6,13 +6,13 @@ const contactInfo = [
   {
     icon: Phone,
     title: "Call Us",
-    line1: "(555) 123-4567",
+    line1: "+27 72 414 4797",
     line2: "24/7 Emergency Service Available",
   },
   {
     icon: Mail,
     title: "Email Us",
-    line1: "info@prospark.com",
+    line1: "info@batukeba.co.za",
     line2: "Quotes & Inquiries",
   },
   {

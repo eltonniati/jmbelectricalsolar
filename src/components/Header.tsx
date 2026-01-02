@@ -32,8 +32,8 @@ const Header = ({ cartCount, onCartClick }: HeaderProps) => {
       <div className="container flex justify-between items-center">
         <div className="flex items-center gap-2">
           <Zap className="w-8 h-8 text-primary" />
-          <span className="text-2xl font-poppins font-bold">
-            Pro<span className="text-primary">Spark</span>
+          <span className="text-xl font-poppins font-bold">
+            Jimmy <span className="text-primary">Batukeba</span> Electrical
           </span>
         </div>
 

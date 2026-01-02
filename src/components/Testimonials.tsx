@@ -2,24 +2,24 @@ import { Star, StarHalf, User, UserRound } from "lucide-react";
 
 const testimonials = [
   {
-    text: "ProSpark Electricians arrived on time, diagnosed the issue quickly, and fixed it at a reasonable price. Highly professional!",
+    text: "Jimmy Batukeba Electrical arrived on time, diagnosed the issue quickly, and fixed it at a reasonable price. Highly professional!",
     rating: 5,
-    name: "Michael Johnson",
-    role: "Homeowner",
+    name: "Thabo Mokoena",
+    role: "Homeowner, Pretoria",
     icon: User,
   },
   {
-    text: "We hired ProSpark to rewire our entire office building. They completed the project ahead of schedule with minimal disruption.",
+    text: "We hired Jimmy Batukeba to rewire our entire office building. They completed the project ahead of schedule with minimal disruption.",
     rating: 4.5,
-    name: "Sarah Williams",
-    role: "Business Owner",
+    name: "Naledi van der Merwe",
+    role: "Business Owner, Johannesburg",
     icon: UserRound,
   },
   {
     text: "The team installed solar panels on my home. They were knowledgeable, efficient, and the system works perfectly!",
     rating: 5,
-    name: "Robert Chen",
-    role: "Residential Client",
+    name: "Patrick Kabongo",
+    role: "Residential Client, Centurion",
     icon: User,
   },
 ];

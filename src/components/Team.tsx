@@ -2,22 +2,22 @@ import { HardHat } from "lucide-react";
 
 const teamMembers = [
   {
-    name: "James Wilson",
+    name: "Sipho Ndlovu",
     role: "Master Electrician",
     quote:
-      "I've been with ProSpark for 8 years. The company invests in our ongoing training and provides excellent benefits.",
+      "I've been with Jimmy Batukeba Electrical for 8 years. The company invests in our ongoing training and provides excellent benefits.",
   },
   {
-    name: "Lisa Rodriguez",
+    name: "Grace Mutombo",
     role: "Electrical Engineer",
     quote:
       "The work-life balance here is great, and management truly values our input on projects. It's a rewarding career.",
   },
   {
-    name: "David Park",
+    name: "Pieter Botha",
     role: "Journeyman Electrician",
     quote:
-      "ProSpark supports our professional growth with certification programs and the latest tools. Safety is always the priority.",
+      "Jimmy Batukeba Electrical supports our professional growth with certification programs and the latest tools. Safety is always the priority.",
   },
 ];
 
