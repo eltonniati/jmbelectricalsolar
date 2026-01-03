@@ -1,8 +1,16 @@
 import { MessageCircle } from "lucide-react";
 
-const WhatsAppFloat = () => {
+interface WhatsAppFloatProps {
+  onClick?: () => void;
+}
+
+const WhatsAppFloat = ({ onClick }: WhatsAppFloatProps) => {
   const handleClick = () => {
-    window.open("https://wa.me/27724144797", "_blank");
+    if (onClick) {
+      onClick();
+    } else {
+      window.open("https://wa.me/27724144797", "_blank");
+    }
   };
 
   return (
