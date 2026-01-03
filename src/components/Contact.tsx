@@ -1,6 +1,10 @@
 import { useState } from "react";
-import { Phone, Mail, Clock } from "lucide-react";
+import { Phone, Mail, Clock, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
+
+interface ContactProps {
+  onWhatsAppClick?: () => void;
+}
 
 const contactInfo = [
   {
@@ -10,9 +14,15 @@ const contactInfo = [
     line2: "24/7 Emergency Service Available",
   },
   {
+    icon: MessageCircle,
+    title: "WhatsApp",
+    line1: "Click to WhatsApp",
+    line2: "Quick response guaranteed",
+  },
+  {
     icon: Mail,
     title: "Email Us",
-    line1: "info@jmbcontractors.co.za",
+    line1: "info@jmbelectrical.co.za",
     line2: "Quotes & Inquiries",
   },
   {
@@ -23,13 +33,21 @@ const contactInfo = [
   },
 ];
 
-const Contact = () => {
+const Contact = ({ onWhatsAppClick }: ContactProps) => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     service: "",
     message: "",
   });
+
+  const handleWhatsAppClick = () => {
+    if (onWhatsAppClick) {
+      onWhatsAppClick();
+    } else {
+      window.open("https://wa.me/27724144797", "_blank");
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,11 +68,19 @@ const Contact = () => {
         </div>
 
         <div className="max-w-4xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
             {contactInfo.map((info, index) => (
-              <div key={index} className="text-center">
-                <div className="w-16 h-16 bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
-                  <info.icon className="w-7 h-7 text-primary" />
+              <div 
+                key={index} 
+                className="text-center cursor-pointer"
+                onClick={info.title === "WhatsApp" ? handleWhatsAppClick : undefined}
+              >
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 ${
+                  info.title === "WhatsApp" ? "bg-green-500" : "bg-secondary"
+                }`}>
+                  <info.icon className={`w-7 h-7 ${
+                    info.title === "WhatsApp" ? "text-white" : "text-primary"
+                  }`} />
                 </div>
                 <h3 className="font-poppins font-semibold text-lg mb-2">
                   {info.title}
@@ -123,12 +149,22 @@ const Contact = () => {
                 className="w-full px-4 py-3 border border-input rounded focus:outline-none focus:ring-2 focus:ring-secondary bg-background resize-none"
               />
             </div>
-            <button
-              type="submit"
-              className="w-full bg-accent text-accent-foreground py-3 rounded font-semibold text-lg hover:bg-accent/90 hover:-translate-y-1 hover:shadow-lg transition-all"
-            >
-              Send Message
-            </button>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <button
+                type="submit"
+                className="flex-1 bg-accent text-accent-foreground py-3 rounded font-semibold text-lg hover:bg-accent/90 hover:-translate-y-1 hover:shadow-lg transition-all"
+              >
+                Send Message
+              </button>
+              <button
+                type="button"
+                onClick={handleWhatsAppClick}
+                className="flex-1 flex items-center justify-center gap-2 bg-green-500 text-white py-3 rounded font-semibold text-lg hover:bg-green-600 hover:-translate-y-1 hover:shadow-lg transition-all"
+              >
+                <MessageCircle size={20} />
+                WhatsApp Message
+              </button>
+            </div>
           </form>
         </div>
       </div>
