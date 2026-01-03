@@ -79,6 +79,8 @@
 
   body {
     @apply bg-background text-foreground font-roboto;
+    margin: 0;
+    padding: 0;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -96,4 +98,28 @@
     content: '\201C';
     @apply absolute -top-2 left-2 text-7xl text-primary/30 font-serif;
   }
+}
+
+/* Line clamp utilities */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* WhatsApp button glow effect */
+.whatsapp-glow {
+  box-shadow: 0 0 20px rgba(37, 211, 102, 0.5);
+}
+
+.whatsapp-glow:hover {
+  box-shadow: 0 0 30px rgba(37, 211, 102, 0.8);
 }
