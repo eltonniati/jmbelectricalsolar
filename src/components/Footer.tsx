@@ -15,7 +15,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           <div>
             <h3 className="text-primary text-xl font-poppins font-semibold mb-6">
-              Jimmy Batukeba Electrical
+              JMB Contractors
             </h3>
             <p className="text-secondary-foreground/80 mb-6">
               Professional electrical services with over 15 years of experience.
@@ -121,7 +121,7 @@ const Footer = () => {
               </li>
               <li className="flex items-center gap-2">
                 <Mail className="w-5 h-5 shrink-0" />
-                info@batukeba.co.za
+                info@jmbcontractors.co.za
               </li>
               <li className="flex items-center gap-2">
                 <Clock className="w-5 h-5 shrink-0" />
@@ -133,7 +133,7 @@ const Footer = () => {
 
         <div className="border-t border-white/10 pt-8 text-center text-secondary-foreground/60">
           <p>
-            © 2024 Jimmy Batukeba Electrical. All rights reserved. | Pretoria, South Africa
+            © 2024 JMB Contractors. All rights reserved. | jmbcontractors.co.za | Pretoria, South Africa
           </p>
         </div>
       </div>

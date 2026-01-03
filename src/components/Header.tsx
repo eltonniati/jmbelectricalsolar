@@ -33,7 +33,7 @@ const Header = ({ cartCount, onCartClick }: HeaderProps) => {
         <div className="flex items-center gap-2">
           <Zap className="w-8 h-8 text-primary" />
           <span className="text-xl font-poppins font-bold">
-            Jimmy <span className="text-primary">Batukeba</span> Electrical
+            JMB <span className="text-primary">Contractors</span>
           </span>
         </div>
 
