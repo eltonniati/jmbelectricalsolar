@@ -12,7 +12,7 @@ const contactInfo = [
   {
     icon: Mail,
     title: "Email Us",
-    line1: "info@batukeba.co.za",
+    line1: "info@jmbcontractors.co.za",
     line2: "Quotes & Inquiries",
   },
   {
