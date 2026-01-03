@@ -1,6 +1,10 @@
 import { Facebook, Twitter, Instagram, Linkedin, MapPin, Phone, Mail, Clock, MessageCircle } from "lucide-react";
 
-const Footer = () => {
+interface FooterProps {
+  onWhatsAppClick?: () => void;
+}
+
+const Footer = ({ onWhatsAppClick }: FooterProps) => {
   const handleScroll = (href: string) => {
     const element = document.querySelector(href);
     if (element) {
@@ -10,7 +14,11 @@ const Footer = () => {
   };
 
   const handleWhatsAppClick = () => {
-    window.open("https://wa.me/27724144797", "_blank");
+    if (onWhatsAppClick) {
+      onWhatsAppClick();
+    } else {
+      window.open("https://wa.me/27724144797", "_blank");
+    }
   };
 
   return (
