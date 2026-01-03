@@ -1,45 +1,102 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Download, Plus, Trash2, LogOut, Shield, Package, FileText, ArrowLeft, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 
+// Match the Product interface from your products page
 interface Product {
   id: string;
   name: string;
-  price: number;
-  category: string;
   description: string;
-  imageUrl?: string;
-  imageFile?: File;
+  price: number;
+  image: string; // Changed from imageUrl to image
 }
 
 interface AdminProps {
   onLogout: () => void;
   onBackToSite: () => void;
+  onUpdateProducts: (products: Product[]) => void; // New prop to update products in parent
 }
 
-const Admin = ({ onLogout, onBackToSite }: AdminProps) => {
+const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   
   const [products, setProducts] = useState<Product[]>([
-    { id: "1", name: "Circuit Breaker", price: 450, category: "Safety", description: "20A Circuit Breaker" },
-    { id: "2", name: "LED Light Bulb", price: 85, category: "Lighting", description: "15W LED Bulb" },
-    { id: "3", name: "Electrical Wire", price: 320, category: "Wiring", description: "2.5mm Copper Wire" },
-    { id: "4", name: "Solar Panel", price: 2500, category: "Solar", description: "400W Monocrystalline Panel" },
-    { id: "5", name: "EV Charger", price: 8500, category: "EV", description: "Level 2 Home Charger" },
+    {
+      id: "1",
+      name: "550W Mono Solar Panel",
+      description: "High-efficiency monocrystalline solar panel for residential and commercial use.",
+      price: 2899.99,
+      image: "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400&h=300&fit=crop",
+    },
+    {
+      id: "2",
+      name: "5kW Hybrid Inverter",
+      description: "Hybrid solar inverter with battery backup support and WiFi monitoring.",
+      price: 18999.99,
+      image: "https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=400&h=300&fit=crop",
+    },
+    {
+      id: "3",
+      name: "10kWh Lithium Battery",
+      description: "Long-lasting lithium-ion battery for solar energy storage.",
+      price: 45999.99,
+      image: "https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?w=400&h=300&fit=crop",
+    },
+    {
+      id: "4",
+      name: "Solar Panel Mounting Kit",
+      description: "Complete roof mounting system for 4-6 solar panels with all hardware.",
+      price: 1499.99,
+      image: "https://images.unsplash.com/photo-1558449028-b53a39d100fc?w=400&h=300&fit=crop",
+    },
+    {
+      id: "5",
+      name: "3kW Inverter",
+      description: "Pure sine wave inverter ideal for small homes and backup power.",
+      price: 8999.99,
+      image: "https://images.unsplash.com/photo-1597079910443-60c43fc25754?w=400&h=300&fit=crop",
+    },
+    {
+      id: "6",
+      name: "Solar Cable Kit (50m)",
+      description: "UV-resistant solar cables with MC4 connectors for panel connections.",
+      price: 899.99,
+      image: "https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?w=400&h=300&fit=crop",
+    },
+    {
+      id: "7",
+      name: "400W Poly Solar Panel",
+      description: "Affordable polycrystalline panel perfect for budget installations.",
+      price: 1899.99,
+      image: "https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?w=400&h=300&fit=crop",
+    },
+    {
+      id: "8",
+      name: "Solar Charge Controller 60A",
+      description: "MPPT charge controller for efficient battery charging.",
+      price: 2499.99,
+      image: "https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=400&h=300&fit=crop",
+    },
   ]);
   
   const [newProduct, setNewProduct] = useState<Omit<Product, "id">>({
     name: "",
-    price: 0,
-    category: "",
     description: "",
-    imageUrl: "",
+    price: 0,
+    image: "",
   });
 
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Update parent component when products change
+  const updateProductsAndNotify = (updatedProducts: Product[]) => {
+    setProducts(updatedProducts);
+    onUpdateProducts(updatedProducts); // Notify parent component
+  };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,14 +129,14 @@ const Admin = ({ onLogout, onBackToSite }: AdminProps) => {
       const previewUrl = URL.createObjectURL(file);
       setPreviewImage(previewUrl);
       
-      // Update new product with file
+      // For now, we'll keep it as a preview and store a placeholder
+      // In a real app, you would upload this to a server and get a URL
       setNewProduct({
         ...newProduct,
-        imageFile: file,
-        imageUrl: `Uploaded: ${file.name}`
+        image: `Uploaded: ${file.name} - (In real app, this would be server URL)`
       });
       
-      toast.success("Image uploaded successfully");
+      toast.success("Image uploaded successfully - Note: In full implementation, this would upload to server");
     }
   };
 
@@ -90,48 +147,36 @@ const Admin = ({ onLogout, onBackToSite }: AdminProps) => {
     setPreviewImage(null);
     setNewProduct({
       ...newProduct,
-      imageFile: undefined,
-      imageUrl: ""
+      image: ""
     });
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
-  const simulateImageUpload = (): Promise<string> => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        // In a real app, this would upload to a server and return a URL
-        resolve(`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(newProduct.name)}&size=200&backgroundColor=007bff`);
-      }, 1000);
-    });
-  };
-
-  const handleAddProduct = async (e: React.FormEvent) => {
+  const handleAddProduct = (e: React.FormEvent) => {
     e.preventDefault();
     
-    let imageUrl = newProduct.imageUrl;
-    
-    // If there's an image file, simulate upload (in real app, upload to server)
-    if (newProduct.imageFile) {
-      toast.loading("Uploading image...");
-      try {
-        imageUrl = await simulateImageUpload();
-        toast.dismiss();
-        toast.success("Image uploaded successfully");
-      } catch (error) {
-        toast.dismiss();
-        toast.error("Failed to upload image");
-        return;
-      }
+    // For demo purposes, if image is a file upload message, use a placeholder
+    let finalImage = newProduct.image;
+    if (newProduct.image.startsWith("Uploaded:")) {
+      // Use a placeholder image from Unsplash based on product name
+      const encodedName = encodeURIComponent(newProduct.name);
+      finalImage = `https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400&h=300&fit=crop&text=${encodedName}`;
     }
-
+    
     const product: Product = {
       ...newProduct,
       id: Date.now().toString(),
-      imageUrl
+      image: finalImage
     };
     
-    setProducts([...products, product]);
-    setNewProduct({ name: "", price: 0, category: "", description: "", imageUrl: "" });
-    removeImage(); // Clear preview
+    const updatedProducts = [...products, product];
+    updateProductsAndNotify(updatedProducts);
+    
+    // Reset form
+    setNewProduct({ name: "", description: "", price: 0, image: "" });
+    removeImage();
     toast.success("Product added successfully");
   };
 
@@ -139,66 +184,54 @@ const Admin = ({ onLogout, onBackToSite }: AdminProps) => {
     setEditingProduct(product);
     setNewProduct({
       name: product.name,
-      price: product.price,
-      category: product.category,
       description: product.description,
-      imageUrl: product.imageUrl || "",
+      price: product.price,
+      image: product.image || "",
     });
-    setPreviewImage(product.imageUrl || null);
+    setPreviewImage(product.image || null);
   };
 
-  const handleUpdateProduct = async (e: React.FormEvent) => {
+  const handleUpdateProduct = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (editingProduct) {
-      let imageUrl = newProduct.imageUrl;
-      
-      // If there's a new image file, simulate upload
-      if (newProduct.imageFile) {
-        toast.loading("Uploading image...");
-        try {
-          imageUrl = await simulateImageUpload();
-          toast.dismiss();
-          toast.success("Image uploaded successfully");
-        } catch (error) {
-          toast.dismiss();
-          toast.error("Failed to upload image");
-          return;
-        }
+      let finalImage = newProduct.image;
+      if (newProduct.image.startsWith("Uploaded:")) {
+        const encodedName = encodeURIComponent(newProduct.name);
+        finalImage = `https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400&h=300&fit=crop&text=${encodedName}`;
       }
-
+      
       const updatedProducts = products.map(p => 
         p.id === editingProduct.id 
           ? { 
               ...newProduct, 
               id: editingProduct.id, 
-              imageUrl 
+              image: finalImage
             }
           : p
       );
       
-      setProducts(updatedProducts);
+      updateProductsAndNotify(updatedProducts);
       setEditingProduct(null);
-      setNewProduct({ name: "", price: 0, category: "", description: "", imageUrl: "" });
-      removeImage(); // Clear preview
+      setNewProduct({ name: "", description: "", price: 0, image: "" });
+      removeImage();
       toast.success("Product updated successfully");
     }
   };
 
   const handleDeleteProduct = (id: string) => {
-    setProducts(products.filter(p => p.id !== id));
+    const updatedProducts = products.filter(p => p.id !== id);
+    updateProductsAndNotify(updatedProducts);
     toast.success("Product deleted");
   };
 
   const handleExportProducts = () => {
-    // Remove File objects before exporting
-    const exportableProducts = products.map(({ imageFile, ...rest }) => rest);
-    const dataStr = JSON.stringify(exportableProducts, null, 2);
+    const dataStr = JSON.stringify(products, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `jmb-products-${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `solar-products-${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -207,18 +240,15 @@ const Admin = ({ onLogout, onBackToSite }: AdminProps) => {
   };
 
   const handleExportCSV = () => {
-    // Remove File objects before exporting
-    const exportableProducts = products.map(({ imageFile, ...rest }) => rest);
-    const headers = ['ID', 'Name', 'Price', 'Category', 'Description', 'ImageURL'];
+    const headers = ['ID', 'Name', 'Description', 'Price', 'Image'];
     const csvRows = [
       headers.join(','),
-      ...exportableProducts.map(p => [
+      ...products.map(p => [
         p.id,
         `"${p.name}"`,
-        p.price,
-        `"${p.category}"`,
         `"${p.description}"`,
-        `"${p.imageUrl || ''}"`
+        p.price,
+        `"${p.image}"`
       ].join(','))
     ];
     const csvString = csvRows.join('\n');
@@ -226,7 +256,7 @@ const Admin = ({ onLogout, onBackToSite }: AdminProps) => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `jmb-products-${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `solar-products-${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -242,8 +272,19 @@ const Admin = ({ onLogout, onBackToSite }: AdminProps) => {
         try {
           const importedProducts = JSON.parse(event.target?.result as string);
           if (Array.isArray(importedProducts)) {
-            setProducts(importedProducts);
-            toast.success("Products imported successfully");
+            // Validate imported products match the Product interface
+            const validProducts = importedProducts.filter(p => 
+              p.id && p.name && p.description && p.price !== undefined && p.image
+            );
+            
+            if (validProducts.length === importedProducts.length) {
+              updateProductsAndNotify(importedProducts);
+              toast.success("Products imported successfully");
+            } else {
+              toast.error("Some products have invalid format. Please check your JSON file.");
+            }
+          } else {
+            toast.error("Invalid file format. Expected an array of products.");
           }
         } catch (error) {
           toast.error("Failed to import products. Invalid file format.");
@@ -313,7 +354,7 @@ const Admin = ({ onLogout, onBackToSite }: AdminProps) => {
             <Shield className="w-8 h-8 text-primary" />
             <div>
               <h1 className="text-xl font-poppins font-bold">JMB ELECTRICAL Admin Panel</h1>
-              <p className="text-sm text-gray-600">Manage products and inventory</p>
+              <p className="text-sm text-gray-600">Manage solar and electrical products</p>
             </div>
           </div>
           <div className="flex gap-2">
@@ -342,7 +383,7 @@ const Admin = ({ onLogout, onBackToSite }: AdminProps) => {
               <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
                 <h2 className="text-xl font-poppins font-bold flex items-center gap-2">
                   <Package className="w-6 h-6" />
-                  Product Management ({products.length} products)
+                  Solar & Electrical Products ({products.length} products)
                 </h2>
                 <div className="flex flex-wrap gap-2">
                   <label className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors cursor-pointer">
@@ -377,7 +418,6 @@ const Admin = ({ onLogout, onBackToSite }: AdminProps) => {
                   <thead>
                     <tr className="bg-gray-50">
                       <th className="py-3 px-4 text-left">Product</th>
-                      <th className="py-3 px-4 text-left">Category</th>
                       <th className="py-3 px-4 text-left">Price (R)</th>
                       <th className="py-3 px-4 text-left">Actions</th>
                     </tr>
@@ -387,29 +427,18 @@ const Admin = ({ onLogout, onBackToSite }: AdminProps) => {
                       <tr key={product.id} className="border-b hover:bg-gray-50">
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-3">
-                            {product.imageUrl ? (
-                              <div className="w-12 h-12 bg-gray-200 rounded overflow-hidden">
-                                <img 
-                                  src={product.imageUrl} 
-                                  alt={product.name}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                            ) : (
-                              <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
-                                <Package className="w-6 h-6 text-gray-400" />
-                              </div>
-                            )}
+                            <div className="w-16 h-16 bg-gray-200 rounded overflow-hidden flex-shrink-0">
+                              <img 
+                                src={product.image} 
+                                alt={product.name}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
                             <div>
                               <p className="font-medium">{product.name}</p>
-                              <p className="text-sm text-gray-600">{product.description}</p>
+                              <p className="text-sm text-gray-600 line-clamp-2">{product.description}</p>
                             </div>
                           </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm">
-                            {product.category}
-                          </span>
                         </td>
                         <td className="py-3 px-4">
                           <span className="font-bold text-primary">R{product.price.toFixed(2)}</span>
@@ -418,17 +447,16 @@ const Admin = ({ onLogout, onBackToSite }: AdminProps) => {
                           <div className="flex gap-2">
                             <button
                               onClick={() => handleEditProduct(product)}
-                              className="text-blue-500 hover:text-blue-700 p-1"
-                              title="Edit"
+                              className="text-blue-500 hover:text-blue-700 px-3 py-1 border border-blue-500 rounded hover:bg-blue-50 transition-colors text-sm"
                             >
                               Edit
                             </button>
                             <button
                               onClick={() => handleDeleteProduct(product.id)}
-                              className="text-red-500 hover:text-red-700 p-1"
+                              className="text-red-500 hover:text-red-700 p-2 rounded hover:bg-red-50 transition-colors"
                               title="Delete"
                             >
-                              <Trash2 size={18} />
+                              <Trash2 size={16} />
                             </button>
                           </div>
                         </td>
@@ -471,23 +499,6 @@ const Admin = ({ onLogout, onBackToSite }: AdminProps) => {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Category *</label>
-                    <select
-                      value={newProduct.category}
-                      onChange={(e) => setNewProduct({...newProduct, category: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary"
-                      required
-                    >
-                      <option value="">Select category</option>
-                      <option value="Wiring">Wiring</option>
-                      <option value="Lighting">Lighting</option>
-                      <option value="Safety">Safety</option>
-                      <option value="Solar">Solar</option>
-                      <option value="EV">EV Chargers</option>
-                      <option value="Tools">Tools</option>
-                    </select>
-                  </div>
-                  <div>
                     <label className="block text-sm font-medium mb-1">Description *</label>
                     <textarea
                       value={newProduct.description}
@@ -500,9 +511,9 @@ const Admin = ({ onLogout, onBackToSite }: AdminProps) => {
                   
                   {/* Image Upload Section */}
                   <div>
-                    <label className="block text-sm font-medium mb-1">Product Image</label>
+                    <label className="block text-sm font-medium mb-1">Product Image *</label>
                     <div className="space-y-2">
-                      {previewImage && (
+                      {previewImage ? (
                         <div className="relative w-full h-48 bg-gray-100 rounded-lg overflow-hidden">
                           <img
                             src={previewImage}
@@ -517,35 +528,62 @@ const Admin = ({ onLogout, onBackToSite }: AdminProps) => {
                             <X size={16} />
                           </button>
                         </div>
-                      )}
-                      <label className="flex flex-col items-center justify-center w-full p-4 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary transition-colors">
-                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                          <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                          <p className="text-sm text-gray-500">
-                            <span className="font-semibold">Click to upload</span> or drag and drop
-                          </p>
+                      ) : newProduct.image ? (
+                        <div className="w-full h-48 bg-gray-100 rounded-lg overflow-hidden">
+                          <img
+                            src={newProduct.image}
+                            alt="Current"
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                      ) : null}
+                      
+                      <div className="flex flex-col gap-2">
+                        <label className="flex items-center justify-center w-full p-3 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary transition-colors">
+                          <div className="flex items-center justify-center gap-2">
+                            <Upload className="w-5 h-5 text-gray-400" />
+                            <span className="text-sm text-gray-600">Upload Image</span>
+                          </div>
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                            className="hidden"
+                          />
+                        </label>
+                        
+                        <div className="text-center text-xs text-gray-500">
+                          OR
+                        </div>
+                        
+                        <div>
+                          <label className="block text-xs font-medium mb-1">Image URL *</label>
+                          <input
+                            type="url"
+                            value={newProduct.image}
+                            onChange={(e) => {
+                              setNewProduct({...newProduct, image: e.target.value});
+                              if (previewImage) {
+                                URL.revokeObjectURL(previewImage);
+                                setPreviewImage(null);
+                              }
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                            placeholder="https://example.com/image.jpg"
+                            required
+                          />
                           <p className="text-xs text-gray-500 mt-1">
-                            PNG, JPG, GIF up to 5MB
+                            Enter image URL or upload a file
                           </p>
                         </div>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageUpload}
-                          className="hidden"
-                        />
-                      </label>
-                      {newProduct.imageFile && (
-                        <p className="text-sm text-gray-600">
-                          Selected: {newProduct.imageFile.name}
-                        </p>
-                      )}
+                      </div>
                     </div>
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full bg-primary text-white py-3 rounded font-semibold hover:bg-primary/90 transition-colors"
+                    className="w-full bg-primary text-white py-3 rounded font-semibold hover:bg-primary/90 transition-colors mt-4"
                   >
                     {editingProduct ? 'Update Product' : 'Add Product'}
                   </button>
@@ -554,7 +592,7 @@ const Admin = ({ onLogout, onBackToSite }: AdminProps) => {
                       type="button"
                       onClick={() => {
                         setEditingProduct(null);
-                        setNewProduct({ name: "", price: 0, category: "", description: "", imageUrl: "" });
+                        setNewProduct({ name: "", description: "", price: 0, image: "" });
                         removeImage();
                       }}
                       className="w-full bg-gray-200 text-gray-700 py-3 rounded font-semibold hover:bg-gray-300 transition-colors"
