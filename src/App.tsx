@@ -23,19 +23,25 @@ const App = () => {
     if (savedCart) {
       setCart(JSON.parse(savedCart));
     }
+    
+    // Check URL for admin route - IMPORTANT FOR VERCEL
+    const path = window.location.pathname;
+    const hash = window.location.hash;
+    const searchParams = new URLSearchParams(window.location.search);
+    
+    if (path === '/admin' || hash === '#admin' || searchParams.get('page') === 'admin') {
+      setCurrentPage('admin');
+      // Update URL to use hash for Vercel compatibility
+      if (path === '/admin') {
+        window.history.replaceState({}, '', '/#admin');
+      }
+    }
   }, []);
 
   // Save cart to localStorage
   useEffect(() => {
     localStorage.setItem("cart", JSON.stringify(cart));
   }, [cart]);
-
-  // Check URL for admin route
-  useEffect(() => {
-    if (window.location.pathname === '/admin' || window.location.hash === '#admin') {
-      setCurrentPage('admin');
-    }
-  }, []);
 
   const handleAddToCart = (product: Product) => {
     setCart((prevCart) => {
@@ -64,7 +70,8 @@ const App = () => {
   const handleAdminLogin = (credentials: { username: string; password: string }) => {
     if (credentials.username === "admin" && credentials.password === "jmb2024") {
       setCurrentPage('admin');
-      window.history.pushState({}, '', '/admin');
+      // Use hash routing for Vercel
+      window.history.pushState({}, '', '/#admin');
       toast.success("Welcome to Admin Panel");
       return true;
     }
@@ -109,13 +116,13 @@ const App = () => {
       </main>
       <Footer onWhatsAppClick={handleWhatsAppClick} />
       
-      {/* Admin Access Button */}
+      {/* Admin Access Button - Updated for Vercel */}
       <button
         onClick={() => {
           setCurrentPage('admin');
-          window.history.pushState({}, '', '/admin');
+          window.history.pushState({}, '', '/#admin');
         }}
-        className="fixed bottom-24 right-6 z-40 w-14 h-14 bg-gray-800 text-white rounded-full shadow-lg hover:bg-gray-900 hover:scale-110 transition-all duration-300 flex items-center justify-center opacity-0 hover:opacity-100"
+        className="fixed bottom-24 right-6 z-40 w-14 h-14 bg-gray-800 text-white rounded-full shadow-lg hover:bg-gray-900 hover:scale-110 transition-all duration-300 flex items-center justify-center opacity-20 hover:opacity-100"
         aria-label="Admin Access"
         title="Admin Access"
       >
