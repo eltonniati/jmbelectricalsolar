@@ -4,9 +4,10 @@ import { Menu, X, ShoppingCart, Zap, MessageCircle } from "lucide-react";
 interface HeaderProps {
   cartCount: number;
   onCartClick: () => void;
+  onWhatsAppClick?: () => void;
 }
 
-const Header = ({ cartCount, onCartClick }: HeaderProps) => {
+const Header = ({ cartCount, onCartClick, onWhatsAppClick }: HeaderProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navLinks = [
@@ -28,7 +29,11 @@ const Header = ({ cartCount, onCartClick }: HeaderProps) => {
   };
 
   const handleWhatsAppClick = () => {
-    window.open("https://wa.me/27724144797", "_blank");
+    if (onWhatsAppClick) {
+      onWhatsAppClick();
+    } else {
+      window.open("https://wa.me/27724144797", "_blank");
+    }
   };
 
   return (
@@ -70,7 +75,7 @@ const Header = ({ cartCount, onCartClick }: HeaderProps) => {
             <li className="w-full lg:w-auto">
               <button
                 onClick={handleWhatsAppClick}
-                className="flex items-center justify-center gap-2 w-full lg:w-auto px-4 py-3 lg:py-2 lg:ml-8 text-secondary-foreground font-medium hover:text-primary transition-colors"
+                className="flex items-center justify-center gap-2 w-full lg:w-auto px-4 py-3 lg:py-2 lg:ml-8 text-secondary-foreground font-medium hover:text-green-500 transition-colors"
               >
                 <MessageCircle size={20} className="text-green-500" />
                 <span className="text-sm hidden lg:inline">WhatsApp</span>
