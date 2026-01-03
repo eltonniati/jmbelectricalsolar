@@ -1,7 +1,11 @@
 import heroBanner from "@/assets/hero-banner.jpg";
 import { MessageCircle } from "lucide-react";
 
-const Hero = () => {
+interface HeroProps {
+  onWhatsAppClick?: () => void;
+}
+
+const Hero = ({ onWhatsAppClick }: HeroProps) => {
   const handleScroll = (href: string) => {
     const element = document.querySelector(href);
     if (element) {
@@ -11,7 +15,11 @@ const Hero = () => {
   };
 
   const handleWhatsAppClick = () => {
-    window.open("https://wa.me/27724144797", "_blank");
+    if (onWhatsAppClick) {
+      onWhatsAppClick();
+    } else {
+      window.open("https://wa.me/27724144797", "_blank");
+    }
   };
 
   return (
