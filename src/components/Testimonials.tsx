@@ -2,14 +2,14 @@ import { Star, StarHalf, User, UserRound } from "lucide-react";
 
 const testimonials = [
   {
-    text: "Jimmy Batukeba Electrical arrived on time, diagnosed the issue quickly, and fixed it at a reasonable price. Highly professional!",
+    text: "JMB Electrical arrived on time, diagnosed the issue quickly, and fixed it at a reasonable price. Highly professional!",
     rating: 5,
     name: "Thabo Mokoena",
     role: "Homeowner, Pretoria",
     icon: User,
   },
   {
-    text: "We hired Jimmy Batukeba to rewire our entire office building. They completed the project ahead of schedule with minimal disruption.",
+    text: "We hired JMB Electrical to rewire our entire office building. They completed the project ahead of schedule with minimal disruption.",
     rating: 4.5,
     name: "Naledi van der Merwe",
     role: "Business Owner, Johannesburg",
