@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Download, Plus, Trash2, LogOut, Shield, Package, FileText, ArrowLeft, Upload } from "lucide-react";
+import { Download, Plus, Trash2, LogOut, Shield, Package, FileText, ArrowLeft, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 
 interface Product {
@@ -9,6 +9,7 @@ interface Product {
   category: string;
   description: string;
   imageUrl?: string;
+  imageFile?: File;
 }
 
 interface AdminProps {
@@ -38,6 +39,7 @@ const Admin = ({ onLogout, onBackToSite }: AdminProps) => {
   });
 
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,14 +51,87 @@ const Admin = ({ onLogout, onBackToSite }: AdminProps) => {
     }
   };
 
-  const handleAddProduct = (e: React.FormEvent) => {
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      if (!validTypes.includes(file.type)) {
+        toast.error("Please upload a valid image file (JPEG, PNG, GIF, WebP)");
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        toast.error("Image size should be less than 5MB");
+        return;
+      }
+
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
+      setPreviewImage(previewUrl);
+      
+      // Update new product with file
+      setNewProduct({
+        ...newProduct,
+        imageFile: file,
+        imageUrl: `Uploaded: ${file.name}`
+      });
+      
+      toast.success("Image uploaded successfully");
+    }
+  };
+
+  const removeImage = () => {
+    if (previewImage) {
+      URL.revokeObjectURL(previewImage);
+    }
+    setPreviewImage(null);
+    setNewProduct({
+      ...newProduct,
+      imageFile: undefined,
+      imageUrl: ""
+    });
+  };
+
+  const simulateImageUpload = (): Promise<string> => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        // In a real app, this would upload to a server and return a URL
+        resolve(`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(newProduct.name)}&size=200&backgroundColor=007bff`);
+      }, 1000);
+    });
+  };
+
+  const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    let imageUrl = newProduct.imageUrl;
+    
+    // If there's an image file, simulate upload (in real app, upload to server)
+    if (newProduct.imageFile) {
+      toast.loading("Uploading image...");
+      try {
+        imageUrl = await simulateImageUpload();
+        toast.dismiss();
+        toast.success("Image uploaded successfully");
+      } catch (error) {
+        toast.dismiss();
+        toast.error("Failed to upload image");
+        return;
+      }
+    }
+
     const product: Product = {
       ...newProduct,
       id: Date.now().toString(),
+      imageUrl
     };
+    
     setProducts([...products, product]);
     setNewProduct({ name: "", price: 0, category: "", description: "", imageUrl: "" });
+    removeImage(); // Clear preview
     toast.success("Product added successfully");
   };
 
@@ -69,19 +144,43 @@ const Admin = ({ onLogout, onBackToSite }: AdminProps) => {
       description: product.description,
       imageUrl: product.imageUrl || "",
     });
+    setPreviewImage(product.imageUrl || null);
   };
 
-  const handleUpdateProduct = (e: React.FormEvent) => {
+  const handleUpdateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     if (editingProduct) {
+      let imageUrl = newProduct.imageUrl;
+      
+      // If there's a new image file, simulate upload
+      if (newProduct.imageFile) {
+        toast.loading("Uploading image...");
+        try {
+          imageUrl = await simulateImageUpload();
+          toast.dismiss();
+          toast.success("Image uploaded successfully");
+        } catch (error) {
+          toast.dismiss();
+          toast.error("Failed to upload image");
+          return;
+        }
+      }
+
       const updatedProducts = products.map(p => 
         p.id === editingProduct.id 
-          ? { ...newProduct, id: editingProduct.id }
+          ? { 
+              ...newProduct, 
+              id: editingProduct.id, 
+              imageUrl 
+            }
           : p
       );
+      
       setProducts(updatedProducts);
       setEditingProduct(null);
       setNewProduct({ name: "", price: 0, category: "", description: "", imageUrl: "" });
+      removeImage(); // Clear preview
       toast.success("Product updated successfully");
     }
   };
@@ -92,7 +191,9 @@ const Admin = ({ onLogout, onBackToSite }: AdminProps) => {
   };
 
   const handleExportProducts = () => {
-    const dataStr = JSON.stringify(products, null, 2);
+    // Remove File objects before exporting
+    const exportableProducts = products.map(({ imageFile, ...rest }) => rest);
+    const dataStr = JSON.stringify(exportableProducts, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
@@ -106,15 +207,18 @@ const Admin = ({ onLogout, onBackToSite }: AdminProps) => {
   };
 
   const handleExportCSV = () => {
-    const headers = ['ID', 'Name', 'Price', 'Category', 'Description'];
+    // Remove File objects before exporting
+    const exportableProducts = products.map(({ imageFile, ...rest }) => rest);
+    const headers = ['ID', 'Name', 'Price', 'Category', 'Description', 'ImageURL'];
     const csvRows = [
       headers.join(','),
-      ...products.map(p => [
+      ...exportableProducts.map(p => [
         p.id,
         `"${p.name}"`,
         p.price,
         `"${p.category}"`,
-        `"${p.description}"`
+        `"${p.description}"`,
+        `"${p.imageUrl || ''}"`
       ].join(','))
     ];
     const csvString = csvRows.join('\n');
@@ -272,7 +376,7 @@ const Admin = ({ onLogout, onBackToSite }: AdminProps) => {
                 <table className="w-full min-w-full">
                   <thead>
                     <tr className="bg-gray-50">
-                      <th className="py-3 px-4 text-left">Product Name</th>
+                      <th className="py-3 px-4 text-left">Product</th>
                       <th className="py-3 px-4 text-left">Category</th>
                       <th className="py-3 px-4 text-left">Price (R)</th>
                       <th className="py-3 px-4 text-left">Actions</th>
@@ -282,9 +386,24 @@ const Admin = ({ onLogout, onBackToSite }: AdminProps) => {
                     {products.map((product) => (
                       <tr key={product.id} className="border-b hover:bg-gray-50">
                         <td className="py-3 px-4">
-                          <div>
-                            <p className="font-medium">{product.name}</p>
-                            <p className="text-sm text-gray-600">{product.description}</p>
+                          <div className="flex items-center gap-3">
+                            {product.imageUrl ? (
+                              <div className="w-12 h-12 bg-gray-200 rounded overflow-hidden">
+                                <img 
+                                  src={product.imageUrl} 
+                                  alt={product.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-12 h-12 bg-gray-200 rounded flex items-center justify-center">
+                                <Package className="w-6 h-6 text-gray-400" />
+                              </div>
+                            )}
+                            <div>
+                              <p className="font-medium">{product.name}</p>
+                              <p className="text-sm text-gray-600">{product.description}</p>
+                            </div>
                           </div>
                         </td>
                         <td className="py-3 px-4">
@@ -378,16 +497,52 @@ const Admin = ({ onLogout, onBackToSite }: AdminProps) => {
                       required
                     />
                   </div>
+                  
+                  {/* Image Upload Section */}
                   <div>
-                    <label className="block text-sm font-medium mb-1">Image URL (Optional)</label>
-                    <input
-                      type="url"
-                      value={newProduct.imageUrl}
-                      onChange={(e) => setNewProduct({...newProduct, imageUrl: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary"
-                      placeholder="https://example.com/image.jpg"
-                    />
+                    <label className="block text-sm font-medium mb-1">Product Image</label>
+                    <div className="space-y-2">
+                      {previewImage && (
+                        <div className="relative w-full h-48 bg-gray-100 rounded-lg overflow-hidden">
+                          <img
+                            src={previewImage}
+                            alt="Preview"
+                            className="w-full h-full object-contain"
+                          />
+                          <button
+                            type="button"
+                            onClick={removeImage}
+                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      )}
+                      <label className="flex flex-col items-center justify-center w-full p-4 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary transition-colors">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                          <p className="text-sm text-gray-500">
+                            <span className="font-semibold">Click to upload</span> or drag and drop
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            PNG, JPG, GIF up to 5MB
+                          </p>
+                        </div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          className="hidden"
+                        />
+                      </label>
+                      {newProduct.imageFile && (
+                        <p className="text-sm text-gray-600">
+                          Selected: {newProduct.imageFile.name}
+                        </p>
+                      )}
+                    </div>
                   </div>
+
                   <button
                     type="submit"
                     className="w-full bg-primary text-white py-3 rounded font-semibold hover:bg-primary/90 transition-colors"
@@ -400,6 +555,7 @@ const Admin = ({ onLogout, onBackToSite }: AdminProps) => {
                       onClick={() => {
                         setEditingProduct(null);
                         setNewProduct({ name: "", price: 0, category: "", description: "", imageUrl: "" });
+                        removeImage();
                       }}
                       className="w-full bg-gray-200 text-gray-700 py-3 rounded font-semibold hover:bg-gray-300 transition-colors"
                     >
