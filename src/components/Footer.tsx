@@ -1,4 +1,4 @@
-import { Facebook, Twitter, Instagram, Linkedin, MapPin, Phone, Mail, Clock } from "lucide-react";
+import { Facebook, Twitter, Instagram, Linkedin, MapPin, Phone, Mail, Clock, MessageCircle } from "lucide-react";
 
 const Footer = () => {
   const handleScroll = (href: string) => {
@@ -9,13 +9,17 @@ const Footer = () => {
     }
   };
 
+  const handleWhatsAppClick = () => {
+    window.open("https://wa.me/27724144797", "_blank");
+  };
+
   return (
     <footer className="bg-secondary text-secondary-foreground pt-16 pb-8">
       <div className="container">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           <div>
             <h3 className="text-primary text-xl font-poppins font-semibold mb-6">
-              JMB Contractors
+              JMB ELECTRICAL
             </h3>
             <p className="text-secondary-foreground/80 mb-6">
               Professional electrical services with over 15 years of experience.
@@ -23,11 +27,17 @@ const Footer = () => {
               satisfaction.
             </p>
             <div className="flex gap-4">
+              <button
+                onClick={handleWhatsAppClick}
+                className="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center hover:bg-green-600 hover:-translate-y-1 transition-all"
+              >
+                <MessageCircle className="w-5 h-5 text-white" />
+              </button>
               <a
                 href="https://facebook.com/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-primary hover:-translate-y-1 transition-all"
+                className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-blue-600 hover:-translate-y-1 transition-all"
               >
                 <Facebook className="w-5 h-5" />
               </a>
@@ -35,7 +45,7 @@ const Footer = () => {
                 href="https://twitter.com/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-primary hover:-translate-y-1 transition-all"
+                className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-blue-400 hover:-translate-y-1 transition-all"
               >
                 <Twitter className="w-5 h-5" />
               </a>
@@ -43,17 +53,9 @@ const Footer = () => {
                 href="https://instagram.com/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-primary hover:-translate-y-1 transition-all"
+                className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-pink-600 hover:-translate-y-1 transition-all"
               >
                 <Instagram className="w-5 h-5" />
-              </a>
-              <a
-                href="https://linkedin.com/in/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-primary hover:-translate-y-1 transition-all"
-              >
-                <Linkedin className="w-5 h-5" />
               </a>
             </div>
           </div>
@@ -120,8 +122,17 @@ const Footer = () => {
                 +27 72 414 4797
               </li>
               <li className="flex items-center gap-2">
+                <MessageCircle className="w-5 h-5 shrink-0 text-green-400" />
+                <button
+                  onClick={handleWhatsAppClick}
+                  className="hover:text-primary transition-colors"
+                >
+                  WhatsApp Us
+                </button>
+              </li>
+              <li className="flex items-center gap-2">
                 <Mail className="w-5 h-5 shrink-0" />
-                info@jmbcontractors.co.za
+                info@jmbelectrical.co.za
               </li>
               <li className="flex items-center gap-2">
                 <Clock className="w-5 h-5 shrink-0" />
@@ -133,7 +144,7 @@ const Footer = () => {
 
         <div className="border-t border-white/10 pt-8 text-center text-secondary-foreground/60">
           <p>
-            © 2024 JMB Contractors. All rights reserved. | jmbcontractors.co.za | Pretoria, South Africa
+            © 2024 JMB ELECTRICAL. All rights reserved. | Pretoria, South Africa
           </p>
         </div>
       </div>
