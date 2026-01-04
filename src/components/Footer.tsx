@@ -31,7 +31,7 @@ const Footer = ({ onWhatsAppClick }: FooterProps) => {
             </h3>
             <p className="text-secondary-foreground/80 mb-6">
               Professional electrical services with over 15 years of experience.
-              Licensed, insured, and committed to safety and customer
+              Registered with ECB & DOL, and committed to safety and customer
               satisfaction.
             </p>
             <div className="flex gap-4">
