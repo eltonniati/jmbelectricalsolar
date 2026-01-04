@@ -1,102 +1,101 @@
-import { useState, useRef } from "react";
-import { Download, Plus, Trash2, LogOut, Shield, Package, FileText, ArrowLeft, Upload, X } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Download, Plus, Trash2, LogOut, Shield, Package, FileText, ArrowLeft, Upload, X, Image, Camera } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
-// Match the Product interface from your products page
 interface Product {
   id: string;
   name: string;
   description: string;
   price: number;
-  image: string; // Changed from imageUrl to image
+  image: string;
+  stock_quantity?: number;
+  is_active?: boolean;
+}
+
+interface CompletedJob {
+  id: string;
+  title: string;
+  location: string;
+  image: string;
+  description?: string;
+  sort_order?: number;
+  is_active?: boolean;
 }
 
 interface AdminProps {
   onLogout: () => void;
   onBackToSite: () => void;
-  onUpdateProducts: (products: Product[]) => void; // New prop to update products in parent
+  onUpdateProducts: (products: Product[]) => void;
 }
 
 const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [activeTab, setActiveTab] = useState<'products' | 'jobs'>('products');
+  const [isLoading, setIsLoading] = useState(false);
   
-  const [products, setProducts] = useState<Product[]>([
-    {
-      id: "1",
-      name: "550W Mono Solar Panel",
-      description: "High-efficiency monocrystalline solar panel for residential and commercial use.",
-      price: 2899.99,
-      image: "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400&h=300&fit=crop",
-    },
-    {
-      id: "2",
-      name: "5kW Hybrid Inverter",
-      description: "Hybrid solar inverter with battery backup support and WiFi monitoring.",
-      price: 18999.99,
-      image: "https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=400&h=300&fit=crop",
-    },
-    {
-      id: "3",
-      name: "10kWh Lithium Battery",
-      description: "Long-lasting lithium-ion battery for solar energy storage.",
-      price: 45999.99,
-      image: "https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?w=400&h=300&fit=crop",
-    },
-    {
-      id: "4",
-      name: "Solar Panel Mounting Kit",
-      description: "Complete roof mounting system for 4-6 solar panels with all hardware.",
-      price: 1499.99,
-      image: "https://images.unsplash.com/photo-1558449028-b53a39d100fc?w=400&h=300&fit=crop",
-    },
-    {
-      id: "5",
-      name: "3kW Inverter",
-      description: "Pure sine wave inverter ideal for small homes and backup power.",
-      price: 8999.99,
-      image: "https://images.unsplash.com/photo-1597079910443-60c43fc25754?w=400&h=300&fit=crop",
-    },
-    {
-      id: "6",
-      name: "Solar Cable Kit (50m)",
-      description: "UV-resistant solar cables with MC4 connectors for panel connections.",
-      price: 899.99,
-      image: "https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?w=400&h=300&fit=crop",
-    },
-    {
-      id: "7",
-      name: "400W Poly Solar Panel",
-      description: "Affordable polycrystalline panel perfect for budget installations.",
-      price: 1899.99,
-      image: "https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?w=400&h=300&fit=crop",
-    },
-    {
-      id: "8",
-      name: "Solar Charge Controller 60A",
-      description: "MPPT charge controller for efficient battery charging.",
-      price: 2499.99,
-      image: "https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=400&h=300&fit=crop",
-    },
-  ]);
-  
+  // Products state
+  const [products, setProducts] = useState<Product[]>([]);
   const [newProduct, setNewProduct] = useState<Omit<Product, "id">>({
     name: "",
     description: "",
     price: 0,
     image: "",
   });
-
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  
+  // Completed jobs state
+  const [completedJobs, setCompletedJobs] = useState<CompletedJob[]>([]);
+  const [newJob, setNewJob] = useState<Omit<CompletedJob, "id">>({
+    title: "",
+    location: "",
+    image: "",
+    description: "",
+  });
+  const [editingJob, setEditingJob] = useState<CompletedJob | null>(null);
+
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Update parent component when products change
-  const updateProductsAndNotify = (updatedProducts: Product[]) => {
-    setProducts(updatedProducts);
-    onUpdateProducts(updatedProducts); // Notify parent component
+  // Fetch products from database
+  const fetchProducts = async () => {
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching products:', error);
+      toast.error('Failed to load products');
+    } else {
+      setProducts(data || []);
+      onUpdateProducts(data || []);
+    }
   };
+
+  // Fetch completed jobs from database
+  const fetchCompletedJobs = async () => {
+    const { data, error } = await supabase
+      .from('completed_jobs')
+      .select('*')
+      .order('sort_order', { ascending: true });
+    
+    if (error) {
+      console.error('Error fetching jobs:', error);
+      toast.error('Failed to load completed jobs');
+    } else {
+      setCompletedJobs(data || []);
+    }
+  };
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchProducts();
+      fetchCompletedJobs();
+    }
+  }, [isAuthenticated]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,32 +110,28 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type
       const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
       if (!validTypes.includes(file.type)) {
         toast.error("Please upload a valid image file (JPEG, PNG, GIF, WebP)");
         return;
       }
 
-      // Validate file size (max 5MB)
-      const maxSize = 5 * 1024 * 1024; // 5MB
+      const maxSize = 5 * 1024 * 1024;
       if (file.size > maxSize) {
         toast.error("Image size should be less than 5MB");
         return;
       }
 
-      // Create preview URL
       const previewUrl = URL.createObjectURL(file);
       setPreviewImage(previewUrl);
       
-      // For now, we'll keep it as a preview and store a placeholder
-      // In a real app, you would upload this to a server and get a URL
-      setNewProduct({
-        ...newProduct,
-        image: `Uploaded: ${file.name} - (In real app, this would be server URL)`
-      });
+      if (activeTab === 'products') {
+        setNewProduct({ ...newProduct, image: `Uploaded: ${file.name}` });
+      } else {
+        setNewJob({ ...newJob, image: `Uploaded: ${file.name}` });
+      }
       
-      toast.success("Image uploaded successfully - Note: In full implementation, this would upload to server");
+      toast.info("For production, image will be stored. Using URL fallback for now.");
     }
   };
 
@@ -145,84 +140,199 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
       URL.revokeObjectURL(previewImage);
     }
     setPreviewImage(null);
-    setNewProduct({
-      ...newProduct,
-      image: ""
-    });
+    if (activeTab === 'products') {
+      setNewProduct({ ...newProduct, image: "" });
+    } else {
+      setNewJob({ ...newJob, image: "" });
+    }
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
   };
 
-  const handleAddProduct = (e: React.FormEvent) => {
+  // Product CRUD operations
+  const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // For demo purposes, if image is a file upload message, use a placeholder
+    setIsLoading(true);
+
     let finalImage = newProduct.image;
     if (newProduct.image.startsWith("Uploaded:")) {
-      // Use a placeholder image from Unsplash based on product name
-      const encodedName = encodeURIComponent(newProduct.name);
-      finalImage = `https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400&h=300&fit=crop&text=${encodedName}`;
+      finalImage = `https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400&h=300&fit=crop`;
     }
-    
-    const product: Product = {
-      ...newProduct,
-      id: Date.now().toString(),
-      image: finalImage
-    };
-    
-    const updatedProducts = [...products, product];
-    updateProductsAndNotify(updatedProducts);
-    
-    // Reset form
-    setNewProduct({ name: "", description: "", price: 0, image: "" });
-    removeImage();
-    toast.success("Product added successfully");
+
+    const { error } = await supabase
+      .from('products')
+      .insert({
+        name: newProduct.name,
+        description: newProduct.description,
+        price: newProduct.price,
+        image: finalImage,
+        stock_quantity: 0,
+        is_active: true,
+      });
+
+    if (error) {
+      console.error('Error adding product:', error);
+      toast.error('Failed to add product');
+    } else {
+      toast.success("Product added successfully");
+      setNewProduct({ name: "", description: "", price: 0, image: "" });
+      removeImage();
+      fetchProducts();
+    }
+    setIsLoading(false);
+  };
+
+  const handleUpdateProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProduct) return;
+    setIsLoading(true);
+
+    let finalImage = newProduct.image;
+    if (newProduct.image.startsWith("Uploaded:")) {
+      finalImage = `https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400&h=300&fit=crop`;
+    }
+
+    const { error } = await supabase
+      .from('products')
+      .update({
+        name: newProduct.name,
+        description: newProduct.description,
+        price: newProduct.price,
+        image: finalImage,
+      })
+      .eq('id', editingProduct.id);
+
+    if (error) {
+      console.error('Error updating product:', error);
+      toast.error('Failed to update product');
+    } else {
+      toast.success("Product updated successfully");
+      setEditingProduct(null);
+      setNewProduct({ name: "", description: "", price: 0, image: "" });
+      removeImage();
+      fetchProducts();
+    }
+    setIsLoading(false);
+  };
+
+  const handleDeleteProduct = async (id: string) => {
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting product:', error);
+      toast.error('Failed to delete product');
+    } else {
+      toast.success("Product deleted");
+      fetchProducts();
+    }
   };
 
   const handleEditProduct = (product: Product) => {
     setEditingProduct(product);
     setNewProduct({
       name: product.name,
-      description: product.description,
+      description: product.description || "",
       price: product.price,
       image: product.image || "",
     });
     setPreviewImage(product.image || null);
   };
 
-  const handleUpdateProduct = (e: React.FormEvent) => {
+  // Completed Jobs CRUD operations
+  const handleAddJob = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (editingProduct) {
-      let finalImage = newProduct.image;
-      if (newProduct.image.startsWith("Uploaded:")) {
-        const encodedName = encodeURIComponent(newProduct.name);
-        finalImage = `https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400&h=300&fit=crop&text=${encodedName}`;
-      }
-      
-      const updatedProducts = products.map(p => 
-        p.id === editingProduct.id 
-          ? { 
-              ...newProduct, 
-              id: editingProduct.id, 
-              image: finalImage
-            }
-          : p
-      );
-      
-      updateProductsAndNotify(updatedProducts);
-      setEditingProduct(null);
-      setNewProduct({ name: "", description: "", price: 0, image: "" });
+    setIsLoading(true);
+
+    let finalImage = newJob.image;
+    if (newJob.image.startsWith("Uploaded:")) {
+      finalImage = `https://images.unsplash.com/photo-1509391366360-2e959784a276?w=800&h=600&fit=crop`;
+    }
+
+    const { error } = await supabase
+      .from('completed_jobs')
+      .insert({
+        title: newJob.title,
+        location: newJob.location,
+        image: finalImage,
+        description: newJob.description,
+        sort_order: completedJobs.length + 1,
+        is_active: true,
+      });
+
+    if (error) {
+      console.error('Error adding job:', error);
+      toast.error('Failed to add completed job');
+    } else {
+      toast.success("Completed job added successfully");
+      setNewJob({ title: "", location: "", image: "", description: "" });
       removeImage();
-      toast.success("Product updated successfully");
+      fetchCompletedJobs();
+    }
+    setIsLoading(false);
+  };
+
+  const handleUpdateJob = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingJob) return;
+    setIsLoading(true);
+
+    let finalImage = newJob.image;
+    if (newJob.image.startsWith("Uploaded:")) {
+      finalImage = `https://images.unsplash.com/photo-1509391366360-2e959784a276?w=800&h=600&fit=crop`;
+    }
+
+    const { error } = await supabase
+      .from('completed_jobs')
+      .update({
+        title: newJob.title,
+        location: newJob.location,
+        image: finalImage,
+        description: newJob.description,
+      })
+      .eq('id', editingJob.id);
+
+    if (error) {
+      console.error('Error updating job:', error);
+      toast.error('Failed to update completed job');
+    } else {
+      toast.success("Completed job updated successfully");
+      setEditingJob(null);
+      setNewJob({ title: "", location: "", image: "", description: "" });
+      removeImage();
+      fetchCompletedJobs();
+    }
+    setIsLoading(false);
+  };
+
+  const handleDeleteJob = async (id: string) => {
+    const { error } = await supabase
+      .from('completed_jobs')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting job:', error);
+      toast.error('Failed to delete completed job');
+    } else {
+      toast.success("Completed job deleted");
+      fetchCompletedJobs();
     }
   };
 
-  const handleDeleteProduct = (id: string) => {
-    const updatedProducts = products.filter(p => p.id !== id);
-    updateProductsAndNotify(updatedProducts);
-    toast.success("Product deleted");
+  const handleEditJob = (job: CompletedJob) => {
+    setEditingJob(job);
+    setNewJob({
+      title: job.title,
+      location: job.location,
+      image: job.image || "",
+      description: job.description || "",
+    });
+    setPreviewImage(job.image || null);
+    setActiveTab('jobs');
   };
 
   const handleExportProducts = () => {
@@ -231,67 +341,12 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `solar-products-${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `jmb-products-${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     toast.success("Products exported as JSON");
-  };
-
-  const handleExportCSV = () => {
-    const headers = ['ID', 'Name', 'Description', 'Price', 'Image'];
-    const csvRows = [
-      headers.join(','),
-      ...products.map(p => [
-        p.id,
-        `"${p.name}"`,
-        `"${p.description}"`,
-        p.price,
-        `"${p.image}"`
-      ].join(','))
-    ];
-    const csvString = csvRows.join('\n');
-    const blob = new Blob([csvString], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `solar-products-${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    toast.success("Products exported as CSV");
-  };
-
-  const handleImportProducts = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          const importedProducts = JSON.parse(event.target?.result as string);
-          if (Array.isArray(importedProducts)) {
-            // Validate imported products match the Product interface
-            const validProducts = importedProducts.filter(p => 
-              p.id && p.name && p.description && p.price !== undefined && p.image
-            );
-            
-            if (validProducts.length === importedProducts.length) {
-              updateProductsAndNotify(importedProducts);
-              toast.success("Products imported successfully");
-            } else {
-              toast.error("Some products have invalid format. Please check your JSON file.");
-            }
-          } else {
-            toast.error("Invalid file format. Expected an array of products.");
-          }
-        } catch (error) {
-          toast.error("Failed to import products. Invalid file format.");
-        }
-      };
-      reader.readAsText(file);
-    }
   };
 
   if (!isAuthenticated) {
@@ -354,7 +409,7 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
             <Shield className="w-8 h-8 text-primary" />
             <div>
               <h1 className="text-xl font-poppins font-bold">JMB ELECTRICAL Admin Panel</h1>
-              <p className="text-sm text-gray-600">Manage solar and electrical products</p>
+              <p className="text-sm text-gray-600">Manage products & completed jobs</p>
             </div>
           </div>
           <div className="flex gap-2">
@@ -376,26 +431,46 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
         </div>
       </header>
 
+      {/* Tab Navigation */}
+      <div className="bg-white border-b">
+        <div className="container mx-auto px-4">
+          <div className="flex gap-4">
+            <button
+              onClick={() => setActiveTab('products')}
+              className={`py-4 px-6 font-medium border-b-2 transition-colors ${
+                activeTab === 'products'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Package className="inline w-5 h-5 mr-2" />
+              Products ({products.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('jobs')}
+              className={`py-4 px-6 font-medium border-b-2 transition-colors ${
+                activeTab === 'jobs'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Camera className="inline w-5 h-5 mr-2" />
+              Completed Jobs ({completedJobs.length})
+            </button>
+          </div>
+        </div>
+      </div>
+
       <main className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow p-6 mb-8">
-              <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
-                <h2 className="text-xl font-poppins font-bold flex items-center gap-2">
-                  <Package className="w-6 h-6" />
-                  Solar & Electrical Products ({products.length} products)
-                </h2>
-                <div className="flex flex-wrap gap-2">
-                  <label className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition-colors cursor-pointer">
-                    <Upload size={18} />
-                    Import JSON
-                    <input
-                      type="file"
-                      accept=".json"
-                      onChange={handleImportProducts}
-                      className="hidden"
-                    />
-                  </label>
+        {activeTab === 'products' ? (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex flex-wrap justify-between items-center mb-6 gap-4">
+                  <h2 className="text-xl font-poppins font-bold flex items-center gap-2">
+                    <Package className="w-6 h-6" />
+                    Products
+                  </h2>
                   <button
                     onClick={handleExportProducts}
                     className="flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition-colors"
@@ -403,208 +478,257 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
                     <Download size={18} />
                     Export JSON
                   </button>
-                  <button
-                    onClick={handleExportCSV}
-                    className="flex items-center gap-2 bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 transition-colors"
-                  >
-                    <FileText size={18} />
-                    Export CSV
-                  </button>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-full">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="py-3 px-4 text-left">Product</th>
+                        <th className="py-3 px-4 text-left">Price (R)</th>
+                        <th className="py-3 px-4 text-left">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {products.map((product) => (
+                        <tr key={product.id} className="border-b hover:bg-gray-50">
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-16 h-16 bg-gray-200 rounded overflow-hidden flex-shrink-0">
+                                <img 
+                                  src={product.image} 
+                                  alt={product.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                              <div>
+                                <p className="font-medium">{product.name}</p>
+                                <p className="text-sm text-gray-600 line-clamp-2">{product.description}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="font-bold text-primary">R{Number(product.price).toFixed(2)}</span>
+                          </td>
+                          <td className="py-3 px-4">
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleEditProduct(product)}
+                                className="text-blue-500 hover:text-blue-700 px-3 py-1 border border-blue-500 rounded hover:bg-blue-50 transition-colors text-sm"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteProduct(product.id)}
+                                className="text-red-500 hover:text-red-700 p-2 rounded hover:bg-red-50 transition-colors"
+                                title="Delete"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
+            </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-full">
-                  <thead>
-                    <tr className="bg-gray-50">
-                      <th className="py-3 px-4 text-left">Product</th>
-                      <th className="py-3 px-4 text-left">Price (R)</th>
-                      <th className="py-3 px-4 text-left">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {products.map((product) => (
-                      <tr key={product.id} className="border-b hover:bg-gray-50">
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-16 h-16 bg-gray-200 rounded overflow-hidden flex-shrink-0">
-                              <img 
-                                src={product.image} 
-                                alt={product.name}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                            <div>
-                              <p className="font-medium">{product.name}</p>
-                              <p className="text-sm text-gray-600 line-clamp-2">{product.description}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className="font-bold text-primary">R{product.price.toFixed(2)}</span>
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => handleEditProduct(product)}
-                              className="text-blue-500 hover:text-blue-700 px-3 py-1 border border-blue-500 rounded hover:bg-blue-50 transition-colors text-sm"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleDeleteProduct(product.id)}
-                              className="text-red-500 hover:text-red-700 p-2 rounded hover:bg-red-50 transition-colors"
-                              title="Delete"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-lg shadow p-6 sticky top-8">
+                <h2 className="text-xl font-poppins font-bold mb-6 flex items-center gap-2">
+                  {editingProduct ? 'Edit Product' : 'Add New Product'}
+                  <Plus className="w-6 h-6" />
+                </h2>
+                <form onSubmit={editingProduct ? handleUpdateProduct : handleAddProduct}>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Product Name *</label>
+                      <input
+                        type="text"
+                        value={newProduct.name}
+                        onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Price (R) *</label>
+                      <input
+                        type="number"
+                        value={newProduct.price}
+                        onChange={(e) => setNewProduct({...newProduct, price: parseFloat(e.target.value)})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                        required
+                        min="0"
+                        step="0.01"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Description *</label>
+                      <textarea
+                        value={newProduct.description}
+                        onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                        rows={3}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Image URL *</label>
+                      <input
+                        type="url"
+                        value={newProduct.image}
+                        onChange={(e) => setNewProduct({...newProduct, image: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                        placeholder="https://example.com/image.jpg"
+                        required
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full bg-primary text-white py-3 rounded font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
+                    >
+                      {isLoading ? 'Saving...' : editingProduct ? 'Update Product' : 'Add Product'}
+                    </button>
+                    {editingProduct && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingProduct(null);
+                          setNewProduct({ name: "", description: "", price: 0, image: "" });
+                        }}
+                        className="w-full bg-gray-200 text-gray-700 py-3 rounded font-semibold hover:bg-gray-300 transition-colors"
+                      >
+                        Cancel Edit
+                      </button>
+                    )}
+                  </div>
+                </form>
               </div>
             </div>
           </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-xl font-poppins font-bold mb-6 flex items-center gap-2">
+                  <Camera className="w-6 h-6" />
+                  Completed Jobs Gallery
+                </h2>
 
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow p-6 sticky top-8">
-              <h2 className="text-xl font-poppins font-bold mb-6 flex items-center gap-2">
-                {editingProduct ? 'Edit Product' : 'Add New Product'}
-                <Plus className="w-6 h-6" />
-              </h2>
-              <form onSubmit={editingProduct ? handleUpdateProduct : handleAddProduct}>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Product Name *</label>
-                    <input
-                      type="text"
-                      value={newProduct.name}
-                      onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Price (R) *</label>
-                    <input
-                      type="number"
-                      value={newProduct.price}
-                      onChange={(e) => setNewProduct({...newProduct, price: parseFloat(e.target.value)})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary"
-                      required
-                      min="0"
-                      step="0.01"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Description *</label>
-                    <textarea
-                      value={newProduct.description}
-                      onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary"
-                      rows={3}
-                      required
-                    />
-                  </div>
-                  
-                  {/* Image Upload Section */}
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Product Image *</label>
-                    <div className="space-y-2">
-                      {previewImage ? (
-                        <div className="relative w-full h-48 bg-gray-100 rounded-lg overflow-hidden">
-                          <img
-                            src={previewImage}
-                            alt="Preview"
-                            className="w-full h-full object-contain"
-                          />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {completedJobs.map((job) => (
+                    <div key={job.id} className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
+                      <div className="h-48 bg-gray-200">
+                        <img 
+                          src={job.image} 
+                          alt={job.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="p-4">
+                        <h3 className="font-semibold">{job.title}</h3>
+                        <p className="text-sm text-gray-600">{job.location}</p>
+                        <div className="flex gap-2 mt-3">
                           <button
-                            type="button"
-                            onClick={removeImage}
-                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                            onClick={() => handleEditJob(job)}
+                            className="text-blue-500 hover:text-blue-700 px-3 py-1 border border-blue-500 rounded hover:bg-blue-50 transition-colors text-sm"
                           >
-                            <X size={16} />
+                            Edit
                           </button>
-                        </div>
-                      ) : newProduct.image ? (
-                        <div className="w-full h-48 bg-gray-100 rounded-lg overflow-hidden">
-                          <img
-                            src={newProduct.image}
-                            alt="Current"
-                            className="w-full h-full object-contain"
-                          />
-                        </div>
-                      ) : null}
-                      
-                      <div className="flex flex-col gap-2">
-                        <label className="flex items-center justify-center w-full p-3 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary transition-colors">
-                          <div className="flex items-center justify-center gap-2">
-                            <Upload className="w-5 h-5 text-gray-400" />
-                            <span className="text-sm text-gray-600">Upload Image</span>
-                          </div>
-                          <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageUpload}
-                            className="hidden"
-                          />
-                        </label>
-                        
-                        <div className="text-center text-xs text-gray-500">
-                          OR
-                        </div>
-                        
-                        <div>
-                          <label className="block text-xs font-medium mb-1">Image URL *</label>
-                          <input
-                            type="url"
-                            value={newProduct.image}
-                            onChange={(e) => {
-                              setNewProduct({...newProduct, image: e.target.value});
-                              if (previewImage) {
-                                URL.revokeObjectURL(previewImage);
-                                setPreviewImage(null);
-                              }
-                            }}
-                            className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                            placeholder="https://example.com/image.jpg"
-                            required
-                          />
-                          <p className="text-xs text-gray-500 mt-1">
-                            Enter image URL or upload a file
-                          </p>
+                          <button
+                            onClick={() => handleDeleteJob(job.id)}
+                            className="text-red-500 hover:text-red-700 p-2 rounded hover:bg-red-50 transition-colors"
+                          >
+                            <Trash2 size={16} />
+                          </button>
                         </div>
                       </div>
                     </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="w-full bg-primary text-white py-3 rounded font-semibold hover:bg-primary/90 transition-colors mt-4"
-                  >
-                    {editingProduct ? 'Update Product' : 'Add Product'}
-                  </button>
-                  {editingProduct && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingProduct(null);
-                        setNewProduct({ name: "", description: "", price: 0, image: "" });
-                        removeImage();
-                      }}
-                      className="w-full bg-gray-200 text-gray-700 py-3 rounded font-semibold hover:bg-gray-300 transition-colors"
-                    >
-                      Cancel Edit
-                    </button>
-                  )}
+                  ))}
                 </div>
-              </form>
+              </div>
+            </div>
+
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-lg shadow p-6 sticky top-8">
+                <h2 className="text-xl font-poppins font-bold mb-6 flex items-center gap-2">
+                  {editingJob ? 'Edit Job' : 'Add Completed Job'}
+                  <Plus className="w-6 h-6" />
+                </h2>
+                <form onSubmit={editingJob ? handleUpdateJob : handleAddJob}>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Job Title *</label>
+                      <input
+                        type="text"
+                        value={newJob.title}
+                        onChange={(e) => setNewJob({...newJob, title: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                        placeholder="e.g., Solar Installation - Residential"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Location *</label>
+                      <input
+                        type="text"
+                        value={newJob.location}
+                        onChange={(e) => setNewJob({...newJob, location: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                        placeholder="e.g., Johannesburg, Gauteng"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Image URL *</label>
+                      <input
+                        type="url"
+                        value={newJob.image}
+                        onChange={(e) => setNewJob({...newJob, image: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                        placeholder="https://example.com/image.jpg"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Description (optional)</label>
+                      <textarea
+                        value={newJob.description}
+                        onChange={(e) => setNewJob({...newJob, description: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                        rows={3}
+                        placeholder="Brief description of the project..."
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className="w-full bg-primary text-white py-3 rounded font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
+                    >
+                      {isLoading ? 'Saving...' : editingJob ? 'Update Job' : 'Add Completed Job'}
+                    </button>
+                    {editingJob && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingJob(null);
+                          setNewJob({ title: "", location: "", image: "", description: "" });
+                        }}
+                        className="w-full bg-gray-200 text-gray-700 py-3 rounded font-semibold hover:bg-gray-300 transition-colors"
+                      >
+                        Cancel Edit
+                      </button>
+                    )}
+                  </div>
+                </form>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </main>
     </div>
   );
