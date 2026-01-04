@@ -11,11 +11,13 @@ import Footer from "@/components/Footer";
 import CartModal, { CartItem } from "@/components/CartModal";
 import Admin from "@/components/Admin";
 import WhatsAppFloat from "@/components/WhatsAppFloat";
+import CompletedJobs from "@/components/CompletedJobs";
 
 const App = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState<'main' | 'admin'>('main');
+  const [adminProducts, setAdminProducts] = useState<Product[]>([]);
 
   // Load cart from localStorage
   useEffect(() => {
@@ -93,9 +95,13 @@ const App = () => {
     window.open("https://wa.me/27724144797", "_blank");
   };
 
+  const handleUpdateProducts = (products: Product[]) => {
+    setAdminProducts(products);
+  };
+
   // Render Admin Page
   if (currentPage === 'admin') {
-    return <Admin onLogout={handleAdminLogout} onBackToSite={handleBackToSite} />;
+    return <Admin onLogout={handleAdminLogout} onBackToSite={handleBackToSite} onUpdateProducts={handleUpdateProducts} />;
   }
 
   // Render Main Website
@@ -109,6 +115,7 @@ const App = () => {
       <main>
         <Hero onWhatsAppClick={handleWhatsAppClick} />
         <Services />
+        <CompletedJobs />
         <Testimonials />
         <Team />
         <Products onAddToCart={handleAddToCart} />
