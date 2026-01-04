@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight, Wrench } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CompletedJob {
   id: string;
@@ -8,64 +9,34 @@ interface CompletedJob {
   location: string;
 }
 
-const completedJobs: CompletedJob[] = [
-  {
-    id: "1",
-    image: "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=800&h=600&fit=crop",
-    title: "Solar Installation - Residential",
-    location: "Johannesburg, Gauteng"
-  },
-  {
-    id: "2",
-    image: "https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?w=800&h=600&fit=crop",
-    title: "Commercial Solar System",
-    location: "Pretoria, Gauteng"
-  },
-  {
-    id: "3",
-    image: "https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&h=600&fit=crop",
-    title: "Inverter & Battery Setup",
-    location: "Centurion, Gauteng"
-  },
-  {
-    id: "4",
-    image: "https://images.unsplash.com/photo-1558449028-b53a39d100fc?w=800&h=600&fit=crop",
-    title: "Rooftop Solar Panels",
-    location: "Sandton, Gauteng"
-  },
-  {
-    id: "5",
-    image: "https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?w=800&h=600&fit=crop",
-    title: "Energy Storage System",
-    location: "Midrand, Gauteng"
-  },
-  {
-    id: "6",
-    image: "https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=800&h=600&fit=crop",
-    title: "Complete Solar Solution",
-    location: "Soweto, Gauteng"
-  },
-  {
-    id: "7",
-    image: "https://images.unsplash.com/photo-1597079910443-60c43fc25754?w=800&h=600&fit=crop",
-    title: "Off-Grid Installation",
-    location: "Kempton Park, Gauteng"
-  },
-  {
-    id: "8",
-    image: "https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?w=800&h=600&fit=crop",
-    title: "Electrical Wiring Upgrade",
-    location: "Randburg, Gauteng"
-  }
-];
-
 const CompletedJobs = () => {
+  const [completedJobs, setCompletedJobs] = useState<CompletedJob[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const itemsPerView = 3;
 
   useEffect(() => {
-    if (!isAutoPlaying) return;
+    const fetchJobs = async () => {
+      const { data, error } = await supabase
+        .from('completed_jobs')
+        .select('id, image, title, location')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching completed jobs:', error);
+      } else {
+        setCompletedJobs(data || []);
+      }
+      setIsLoading(false);
+    };
+
+    fetchJobs();
+  }, []);
+
+  useEffect(() => {
+    if (!isAutoPlaying || completedJobs.length <= itemsPerView) return;
     
     const interval = setInterval(() => {
       setCurrentIndex((prev) => 
@@ -74,12 +45,12 @@ const CompletedJobs = () => {
     }, 4000);
 
     return () => clearInterval(interval);
-  }, [isAutoPlaying]);
+  }, [isAutoPlaying, completedJobs.length]);
 
   const handlePrev = () => {
     setIsAutoPlaying(false);
     setCurrentIndex((prev) => 
-      prev === 0 ? completedJobs.length - itemsPerView : prev - 1
+      prev === 0 ? Math.max(0, completedJobs.length - itemsPerView) : prev - 1
     );
   };
 
@@ -90,9 +61,24 @@ const CompletedJobs = () => {
     );
   };
 
+  if (isLoading) {
+    return (
+      <section className="py-16 bg-muted/50">
+        <div className="container mx-auto px-4">
+          <div className="text-center">
+            <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">Loading completed jobs...</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (completedJobs.length === 0) {
+    return null;
+  }
+
   const visibleJobs = completedJobs.slice(currentIndex, currentIndex + itemsPerView);
-  
-  // Handle wraparound for carousel
   const displayJobs = visibleJobs.length < itemsPerView 
     ? [...visibleJobs, ...completedJobs.slice(0, itemsPerView - visibleJobs.length)]
     : visibleJobs;
@@ -113,24 +99,26 @@ const CompletedJobs = () => {
         </div>
 
         <div className="relative">
-          {/* Navigation Buttons */}
-          <button
-            onClick={handlePrev}
-            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 bg-background shadow-lg rounded-full p-3 hover:bg-primary hover:text-primary-foreground transition-colors"
-            aria-label="Previous"
-          >
-            <ChevronLeft className="w-6 h-6" />
-          </button>
+          {completedJobs.length > itemsPerView && (
+            <>
+              <button
+                onClick={handlePrev}
+                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 bg-background shadow-lg rounded-full p-3 hover:bg-primary hover:text-primary-foreground transition-colors"
+                aria-label="Previous"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
 
-          <button
-            onClick={handleNext}
-            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 bg-background shadow-lg rounded-full p-3 hover:bg-primary hover:text-primary-foreground transition-colors"
-            aria-label="Next"
-          >
-            <ChevronRight className="w-6 h-6" />
-          </button>
+              <button
+                onClick={handleNext}
+                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 bg-background shadow-lg rounded-full p-3 hover:bg-primary hover:text-primary-foreground transition-colors"
+                aria-label="Next"
+              >
+                <ChevronRight className="w-6 h-6" />
+              </button>
+            </>
+          )}
 
-          {/* Carousel Container */}
           <div className="overflow-hidden mx-8">
             <div className="flex gap-6 transition-transform duration-500 ease-in-out">
               {displayJobs.map((job, index) => (
@@ -157,22 +145,23 @@ const CompletedJobs = () => {
             </div>
           </div>
 
-          {/* Dots Indicator */}
-          <div className="flex justify-center gap-2 mt-6">
-            {Array.from({ length: completedJobs.length - itemsPerView + 1 }).map((_, index) => (
-              <button
-                key={index}
-                onClick={() => {
-                  setIsAutoPlaying(false);
-                  setCurrentIndex(index);
-                }}
-                className={`w-3 h-3 rounded-full transition-colors ${
-                  currentIndex === index ? "bg-primary" : "bg-muted-foreground/30"
-                }`}
-                aria-label={`Go to slide ${index + 1}`}
-              />
-            ))}
-          </div>
+          {completedJobs.length > itemsPerView && (
+            <div className="flex justify-center gap-2 mt-6">
+              {Array.from({ length: Math.max(1, completedJobs.length - itemsPerView + 1) }).map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => {
+                    setIsAutoPlaying(false);
+                    setCurrentIndex(index);
+                  }}
+                  className={`w-3 h-3 rounded-full transition-colors ${
+                    currentIndex === index ? "bg-primary" : "bg-muted-foreground/30"
+                  }`}
+                  aria-label={`Go to slide ${index + 1}`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </section>
