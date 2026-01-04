@@ -14,7 +14,108 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      completed_jobs: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          image: string
+          is_active: boolean | null
+          location: string
+          sort_order: number | null
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image: string
+          is_active?: boolean | null
+          location: string
+          sort_order?: number | null
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image?: string
+          is_active?: boolean | null
+          location?: string
+          sort_order?: number | null
+          title?: string
+        }
+        Relationships: []
+      }
+      contact_submissions: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          message: string
+          phone: string | null
+          service_type: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name: string
+          id?: string
+          message: string
+          phone?: string | null
+          service_type?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          message?: string
+          phone?: string | null
+          service_type?: string | null
+          status?: string | null
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          image: string | null
+          is_active: boolean | null
+          name: string
+          price: number
+          stock_quantity: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image?: string | null
+          is_active?: boolean | null
+          name: string
+          price: number
+          stock_quantity?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image?: string | null
+          is_active?: boolean | null
+          name?: string
+          price?: number
+          stock_quantity?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
