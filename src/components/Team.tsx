@@ -1,6 +1,7 @@
 const stats = [
   { value: "98%", label: "Customer Satisfaction" },
-  { value: "12+", label: "Years Experience" },
+  { value: "15", label: "Years Experience" },
+  { value: "COC & DOL", label: "Registered With" },
   { value: "500+", label: "Projects Completed" },
   { value: "24/7", label: "Emergency Service" },
 ];
