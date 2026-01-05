@@ -1,3 +1,6 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
 export interface Product {
   id: string;
   name: string;
@@ -6,70 +9,83 @@ export interface Product {
   image: string;
 }
 
-export const products: Product[] = [
-  {
-    id: "1",
-    name: "550W Mono Solar Panel",
-    description: "High-efficiency monocrystalline solar panel for residential and commercial use.",
-    price: 2899.99,
-    image: "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400&h=300&fit=crop",
-  },
-  {
-    id: "2",
-    name: "5kW Hybrid Inverter",
-    description: "Hybrid solar inverter with battery backup support and WiFi monitoring.",
-    price: 18999.99,
-    image: "https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=400&h=300&fit=crop",
-  },
-  {
-    id: "3",
-    name: "10kWh Lithium Battery",
-    description: "Long-lasting lithium-ion battery for solar energy storage.",
-    price: 45999.99,
-    image: "https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?w=400&h=300&fit=crop",
-  },
-  {
-    id: "4",
-    name: "Solar Panel Mounting Kit",
-    description: "Complete roof mounting system for 4-6 solar panels with all hardware.",
-    price: 1499.99,
-    image: "https://images.unsplash.com/photo-1558449028-b53a39d100fc?w=400&h=300&fit=crop",
-  },
-  {
-    id: "5",
-    name: "3kW Inverter",
-    description: "Pure sine wave inverter ideal for small homes and backup power.",
-    price: 8999.99,
-    image: "https://images.unsplash.com/photo-1597079910443-60c43fc25754?w=400&h=300&fit=crop",
-  },
-  {
-    id: "6",
-    name: "Solar Cable Kit (50m)",
-    description: "UV-resistant solar cables with MC4 connectors for panel connections.",
-    price: 899.99,
-    image: "https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?w=400&h=300&fit=crop",
-  },
-  {
-    id: "7",
-    name: "400W Poly Solar Panel",
-    description: "Affordable polycrystalline panel perfect for budget installations.",
-    price: 1899.99,
-    image: "https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?w=400&h=300&fit=crop",
-  },
-  {
-    id: "8",
-    name: "Solar Charge Controller 60A",
-    description: "MPPT charge controller for efficient battery charging.",
-    price: 2499.99,
-    image: "https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=400&h=300&fit=crop",
-  },
-];
-
 interface ProductsProps {
   onAddToCart: (product: Product) => void;
 }
 
 const Products = ({ onAddToCart }: ProductsProps) => {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching products:', error);
+      } else {
+        setProducts(data?.map(p => ({
+          id: p.id,
+          name: p.name,
+          description: p.description || '',
+          price: Number(p.price),
+          image: p.image || '',
+        })) || []);
+      }
+      setIsLoading(false);
+    };
+
+    fetchProducts();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <section id="products" className="py-20">
+        <div className="container">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-poppins font-semibold text-secondary relative inline-block section-title-underline pb-4">
+              Solar & Electrical Products
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-card rounded-lg overflow-hidden shadow-md animate-pulse">
+                <div className="h-48 bg-muted" />
+                <div className="p-6 space-y-3">
+                  <div className="h-5 bg-muted rounded w-3/4" />
+                  <div className="h-4 bg-muted rounded w-full" />
+                  <div className="h-6 bg-muted rounded w-1/2" />
+                  <div className="h-10 bg-muted rounded w-full" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (products.length === 0) {
+    return (
+      <section id="products" className="py-20">
+        <div className="container">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-poppins font-semibold text-secondary relative inline-block section-title-underline pb-4">
+              Solar & Electrical Products
+            </h2>
+            <p className="text-muted-foreground mt-6">
+              Products coming soon. Check back later!
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section id="products" className="py-20">
       <div className="container">

@@ -67,6 +67,11 @@ const App = () => {
     setCart((prevCart) => prevCart.filter((item) => item.id !== id));
   };
 
+  const handleClearCart = () => {
+    setCart([]);
+    localStorage.removeItem("cart");
+  };
+
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleAdminLogin = (credentials: { username: string; password: string }) => {
@@ -142,6 +147,7 @@ const App = () => {
         onClose={() => setIsCartOpen(false)}
         items={cart}
         onRemoveItem={handleRemoveFromCart}
+        onClearCart={handleClearCart}
       />
     </div>
   );

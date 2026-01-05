@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Download, Plus, Trash2, LogOut, Shield, Package, FileText, ArrowLeft, Upload, X, Image, Camera } from "lucide-react";
+import { Download, Plus, Trash2, LogOut, Shield, Package, FileText, ArrowLeft, Upload, X, Image, Camera, ShoppingCart, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -23,6 +23,27 @@ interface CompletedJob {
   is_active?: boolean;
 }
 
+interface Order {
+  id: string;
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string | null;
+  customer_address: string | null;
+  total_amount: number;
+  status: string;
+  notes: string | null;
+  created_at: string;
+  order_items?: OrderItem[];
+}
+
+interface OrderItem {
+  id: string;
+  product_name: string;
+  product_price: number;
+  quantity: number;
+  subtotal: number;
+}
+
 interface AdminProps {
   onLogout: () => void;
   onBackToSite: () => void;
@@ -33,7 +54,7 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [activeTab, setActiveTab] = useState<'products' | 'jobs'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'jobs' | 'orders'>('products');
   const [isLoading, setIsLoading] = useState(false);
   
   // Products state
@@ -56,7 +77,13 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
   });
   const [editingJob, setEditingJob] = useState<CompletedJob | null>(null);
 
+  // Orders state
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch products from database
@@ -90,10 +117,40 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
     }
   };
 
+  // Fetch orders from database
+  const fetchOrders = async () => {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching orders:', error);
+      toast.error('Failed to load orders');
+    } else {
+      setOrders(data || []);
+    }
+  };
+
+  // Fetch order items for a specific order
+  const fetchOrderItems = async (orderId: string) => {
+    const { data, error } = await supabase
+      .from('order_items')
+      .select('*')
+      .eq('order_id', orderId);
+    
+    if (error) {
+      console.error('Error fetching order items:', error);
+      return [];
+    }
+    return data || [];
+  };
+
   useEffect(() => {
     if (isAuthenticated) {
       fetchProducts();
       fetchCompletedJobs();
+      fetchOrders();
     }
   }, [isAuthenticated]);
 
@@ -107,12 +164,48 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const uploadImageToStorage = async (file: File): Promise<string | null> => {
+    setUploadingImage(true);
+    try {
+      const fileExt = file.name.split('.').pop()?.toLowerCase();
+      if (fileExt !== 'jpg' && fileExt !== 'jpeg' && fileExt !== 'png') {
+        toast.error("Only JPG and PNG images are allowed");
+        return null;
+      }
+
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `uploads/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('images')
+        .upload(filePath, file);
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        toast.error('Failed to upload image');
+        return null;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('images')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Failed to upload image');
+      return null;
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+      const validTypes = ['image/jpeg', 'image/png'];
       if (!validTypes.includes(file.type)) {
-        toast.error("Please upload a valid image file (JPEG, PNG, GIF, WebP)");
+        toast.error("Only JPG and PNG images are allowed");
         return;
       }
 
@@ -124,14 +217,7 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
 
       const previewUrl = URL.createObjectURL(file);
       setPreviewImage(previewUrl);
-      
-      if (activeTab === 'products') {
-        setNewProduct({ ...newProduct, image: `Uploaded: ${file.name}` });
-      } else {
-        setNewJob({ ...newJob, image: `Uploaded: ${file.name}` });
-      }
-      
-      toast.info("For production, image will be stored. Using URL fallback for now.");
+      setSelectedFile(file);
     }
   };
 
@@ -140,9 +226,10 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
       URL.revokeObjectURL(previewImage);
     }
     setPreviewImage(null);
+    setSelectedFile(null);
     if (activeTab === 'products') {
       setNewProduct({ ...newProduct, image: "" });
-    } else {
+    } else if (activeTab === 'jobs') {
       setNewJob({ ...newJob, image: "" });
     }
     if (fileInputRef.current) {
@@ -156,8 +243,21 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
     setIsLoading(true);
 
     let finalImage = newProduct.image;
-    if (newProduct.image.startsWith("Uploaded:")) {
-      finalImage = `https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400&h=300&fit=crop`;
+    
+    if (selectedFile) {
+      const uploadedUrl = await uploadImageToStorage(selectedFile);
+      if (uploadedUrl) {
+        finalImage = uploadedUrl;
+      } else {
+        setIsLoading(false);
+        return;
+      }
+    }
+
+    if (!finalImage) {
+      toast.error("Please provide an image URL or upload an image");
+      setIsLoading(false);
+      return;
     }
 
     const { error } = await supabase
@@ -189,8 +289,15 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
     setIsLoading(true);
 
     let finalImage = newProduct.image;
-    if (newProduct.image.startsWith("Uploaded:")) {
-      finalImage = `https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400&h=300&fit=crop`;
+    
+    if (selectedFile) {
+      const uploadedUrl = await uploadImageToStorage(selectedFile);
+      if (uploadedUrl) {
+        finalImage = uploadedUrl;
+      } else {
+        setIsLoading(false);
+        return;
+      }
     }
 
     const { error } = await supabase
@@ -240,6 +347,7 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
       image: product.image || "",
     });
     setPreviewImage(product.image || null);
+    setSelectedFile(null);
   };
 
   // Completed Jobs CRUD operations
@@ -248,8 +356,21 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
     setIsLoading(true);
 
     let finalImage = newJob.image;
-    if (newJob.image.startsWith("Uploaded:")) {
-      finalImage = `https://images.unsplash.com/photo-1509391366360-2e959784a276?w=800&h=600&fit=crop`;
+    
+    if (selectedFile) {
+      const uploadedUrl = await uploadImageToStorage(selectedFile);
+      if (uploadedUrl) {
+        finalImage = uploadedUrl;
+      } else {
+        setIsLoading(false);
+        return;
+      }
+    }
+
+    if (!finalImage) {
+      toast.error("Please provide an image URL or upload an image");
+      setIsLoading(false);
+      return;
     }
 
     const { error } = await supabase
@@ -281,8 +402,15 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
     setIsLoading(true);
 
     let finalImage = newJob.image;
-    if (newJob.image.startsWith("Uploaded:")) {
-      finalImage = `https://images.unsplash.com/photo-1509391366360-2e959784a276?w=800&h=600&fit=crop`;
+    
+    if (selectedFile) {
+      const uploadedUrl = await uploadImageToStorage(selectedFile);
+      if (uploadedUrl) {
+        finalImage = uploadedUrl;
+      } else {
+        setIsLoading(false);
+        return;
+      }
     }
 
     const { error } = await supabase
@@ -332,7 +460,32 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
       description: job.description || "",
     });
     setPreviewImage(job.image || null);
+    setSelectedFile(null);
     setActiveTab('jobs');
+  };
+
+  // Order operations
+  const handleViewOrder = async (order: Order) => {
+    const items = await fetchOrderItems(order.id);
+    setSelectedOrder({ ...order, order_items: items });
+  };
+
+  const handleUpdateOrderStatus = async (orderId: string, newStatus: string) => {
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: newStatus })
+      .eq('id', orderId);
+
+    if (error) {
+      console.error('Error updating order status:', error);
+      toast.error('Failed to update order status');
+    } else {
+      toast.success("Order status updated");
+      fetchOrders();
+      if (selectedOrder?.id === orderId) {
+        setSelectedOrder({ ...selectedOrder, status: newStatus });
+      }
+    }
   };
 
   const handleExportProducts = () => {
@@ -347,6 +500,18 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     toast.success("Products exported as JSON");
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'confirmed': return 'bg-blue-100 text-blue-800';
+      case 'processing': return 'bg-purple-100 text-purple-800';
+      case 'shipped': return 'bg-indigo-100 text-indigo-800';
+      case 'delivered': return 'bg-green-100 text-green-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
   };
 
   if (!isAuthenticated) {
@@ -409,7 +574,7 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
             <Shield className="w-8 h-8 text-primary" />
             <div>
               <h1 className="text-xl font-poppins font-bold">JMB ELECTRICAL Admin Panel</h1>
-              <p className="text-sm text-gray-600">Manage products & completed jobs</p>
+              <p className="text-sm text-gray-600">Manage products, jobs & orders</p>
             </div>
           </div>
           <div className="flex gap-2">
@@ -457,12 +622,23 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
               <Camera className="inline w-5 h-5 mr-2" />
               Completed Jobs ({completedJobs.length})
             </button>
+            <button
+              onClick={() => setActiveTab('orders')}
+              className={`py-4 px-6 font-medium border-b-2 transition-colors ${
+                activeTab === 'orders'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <ShoppingCart className="inline w-5 h-5 mr-2" />
+              Orders ({orders.length})
+            </button>
           </div>
         </div>
       </div>
 
       <main className="container mx-auto px-4 py-8">
-        {activeTab === 'products' ? (
+        {activeTab === 'products' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
               <div className="bg-white rounded-lg shadow p-6">
@@ -575,23 +751,67 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
                         required
                       />
                     </div>
+                    
+                    {/* Image Upload Section */}
                     <div>
-                      <label className="block text-sm font-medium mb-1">Image URL *</label>
+                      <label className="block text-sm font-medium mb-1">Product Image (JPG/PNG only) *</label>
+                      
+                      {previewImage ? (
+                        <div className="relative mb-2">
+                          <img 
+                            src={previewImage} 
+                            alt="Preview" 
+                            className="w-full h-40 object-cover rounded border"
+                          />
+                          <button
+                            type="button"
+                            onClick={removeImage}
+                            className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div 
+                          onClick={() => fileInputRef.current?.click()}
+                          className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors mb-2"
+                        >
+                          <Upload className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+                          <p className="text-sm text-gray-600">Click to upload image</p>
+                          <p className="text-xs text-gray-400">JPG or PNG only, max 5MB</p>
+                        </div>
+                      )}
+                      
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png"
+                        onChange={handleImageSelect}
+                        className="hidden"
+                      />
+                      
+                      <p className="text-xs text-gray-500 mt-2">Or enter image URL:</p>
                       <input
                         type="url"
                         value={newProduct.image}
-                        onChange={(e) => setNewProduct({...newProduct, image: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                        onChange={(e) => {
+                          setNewProduct({...newProduct, image: e.target.value});
+                          if (e.target.value) {
+                            setPreviewImage(e.target.value);
+                            setSelectedFile(null);
+                          }
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary mt-1"
                         placeholder="https://example.com/image.jpg"
-                        required
                       />
                     </div>
+
                     <button
                       type="submit"
-                      disabled={isLoading}
+                      disabled={isLoading || uploadingImage}
                       className="w-full bg-primary text-white py-3 rounded font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
                     >
-                      {isLoading ? 'Saving...' : editingProduct ? 'Update Product' : 'Add Product'}
+                      {uploadingImage ? 'Uploading...' : isLoading ? 'Saving...' : editingProduct ? 'Update Product' : 'Add Product'}
                     </button>
                     {editingProduct && (
                       <button
@@ -599,6 +819,7 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
                         onClick={() => {
                           setEditingProduct(null);
                           setNewProduct({ name: "", description: "", price: 0, image: "" });
+                          removeImage();
                         }}
                         className="w-full bg-gray-200 text-gray-700 py-3 rounded font-semibold hover:bg-gray-300 transition-colors"
                       >
@@ -610,7 +831,9 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
               </div>
             </div>
           </div>
-        ) : (
+        )}
+
+        {activeTab === 'jobs' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2">
               <div className="bg-white rounded-lg shadow p-6">
@@ -683,17 +906,61 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
                         required
                       />
                     </div>
+                    
+                    {/* Image Upload Section */}
                     <div>
-                      <label className="block text-sm font-medium mb-1">Image URL *</label>
+                      <label className="block text-sm font-medium mb-1">Job Image (JPG/PNG only) *</label>
+                      
+                      {previewImage ? (
+                        <div className="relative mb-2">
+                          <img 
+                            src={previewImage} 
+                            alt="Preview" 
+                            className="w-full h-40 object-cover rounded border"
+                          />
+                          <button
+                            type="button"
+                            onClick={removeImage}
+                            className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div 
+                          onClick={() => fileInputRef.current?.click()}
+                          className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors mb-2"
+                        >
+                          <Upload className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+                          <p className="text-sm text-gray-600">Click to upload image</p>
+                          <p className="text-xs text-gray-400">JPG or PNG only, max 5MB</p>
+                        </div>
+                      )}
+                      
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png"
+                        onChange={handleImageSelect}
+                        className="hidden"
+                      />
+                      
+                      <p className="text-xs text-gray-500 mt-2">Or enter image URL:</p>
                       <input
                         type="url"
                         value={newJob.image}
-                        onChange={(e) => setNewJob({...newJob, image: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                        onChange={(e) => {
+                          setNewJob({...newJob, image: e.target.value});
+                          if (e.target.value) {
+                            setPreviewImage(e.target.value);
+                            setSelectedFile(null);
+                          }
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary mt-1"
                         placeholder="https://example.com/image.jpg"
-                        required
                       />
                     </div>
+
                     <div>
                       <label className="block text-sm font-medium mb-1">Description (optional)</label>
                       <textarea
@@ -706,10 +973,10 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
                     </div>
                     <button
                       type="submit"
-                      disabled={isLoading}
+                      disabled={isLoading || uploadingImage}
                       className="w-full bg-primary text-white py-3 rounded font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
                     >
-                      {isLoading ? 'Saving...' : editingJob ? 'Update Job' : 'Add Completed Job'}
+                      {uploadingImage ? 'Uploading...' : isLoading ? 'Saving...' : editingJob ? 'Update Job' : 'Add Completed Job'}
                     </button>
                     {editingJob && (
                       <button
@@ -717,6 +984,7 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
                         onClick={() => {
                           setEditingJob(null);
                           setNewJob({ title: "", location: "", image: "", description: "" });
+                          removeImage();
                         }}
                         className="w-full bg-gray-200 text-gray-700 py-3 rounded font-semibold hover:bg-gray-300 transition-colors"
                       >
@@ -726,6 +994,175 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
                   </div>
                 </form>
               </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'orders' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-xl font-poppins font-bold mb-6 flex items-center gap-2">
+                  <ShoppingCart className="w-6 h-6" />
+                  Customer Orders
+                </h2>
+
+                {orders.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">No orders yet</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-full">
+                      <thead>
+                        <tr className="bg-gray-50">
+                          <th className="py-3 px-4 text-left">Order Date</th>
+                          <th className="py-3 px-4 text-left">Customer</th>
+                          <th className="py-3 px-4 text-left">Total</th>
+                          <th className="py-3 px-4 text-left">Status</th>
+                          <th className="py-3 px-4 text-left">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {orders.map((order) => (
+                          <tr key={order.id} className="border-b hover:bg-gray-50">
+                            <td className="py-3 px-4">
+                              {new Date(order.created_at).toLocaleDateString('en-ZA', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </td>
+                            <td className="py-3 px-4">
+                              <p className="font-medium">{order.customer_name}</p>
+                              <p className="text-sm text-gray-600">{order.customer_email}</p>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="font-bold text-primary">R{Number(order.total_amount).toFixed(2)}</span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
+                                {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <button
+                                onClick={() => handleViewOrder(order)}
+                                className="text-blue-500 hover:text-blue-700 px-3 py-1 border border-blue-500 rounded hover:bg-blue-50 transition-colors text-sm flex items-center gap-1"
+                              >
+                                <Eye size={14} />
+                                View
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="lg:col-span-1">
+              {selectedOrder ? (
+                <div className="bg-white rounded-lg shadow p-6 sticky top-8">
+                  <h2 className="text-xl font-poppins font-bold mb-4">Order Details</h2>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-sm text-gray-500">Customer Name</p>
+                      <p className="font-medium">{selectedOrder.customer_name}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Email</p>
+                      <p className="font-medium">{selectedOrder.customer_email}</p>
+                    </div>
+                    {selectedOrder.customer_phone && (
+                      <div>
+                        <p className="text-sm text-gray-500">Phone</p>
+                        <p className="font-medium">{selectedOrder.customer_phone}</p>
+                      </div>
+                    )}
+                    {selectedOrder.customer_address && (
+                      <div>
+                        <p className="text-sm text-gray-500">Address</p>
+                        <p className="font-medium">{selectedOrder.customer_address}</p>
+                      </div>
+                    )}
+                    {selectedOrder.notes && (
+                      <div>
+                        <p className="text-sm text-gray-500">Notes</p>
+                        <p className="font-medium">{selectedOrder.notes}</p>
+                      </div>
+                    )}
+                    
+                    <div className="border-t pt-4">
+                      <p className="text-sm text-gray-500 mb-2">Order Items</p>
+                      {selectedOrder.order_items?.map((item) => (
+                        <div key={item.id} className="flex justify-between py-2 border-b">
+                          <div>
+                            <p className="font-medium">{item.product_name}</p>
+                            <p className="text-sm text-gray-600">
+                              R{Number(item.product_price).toFixed(2)} × {item.quantity}
+                            </p>
+                          </div>
+                          <p className="font-bold">R{Number(item.subtotal).toFixed(2)}</p>
+                        </div>
+                      ))}
+                      <div className="flex justify-between py-3 font-bold text-lg">
+                        <span>Total</span>
+                        <span className="text-primary">R{Number(selectedOrder.total_amount).toFixed(2)}</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Update Status</label>
+                      <select
+                        value={selectedOrder.status}
+                        onChange={(e) => handleUpdateOrderStatus(selectedOrder.id, e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                      >
+                        <option value="pending">Pending</option>
+                        <option value="confirmed">Confirmed</option>
+                        <option value="processing">Processing</option>
+                        <option value="shipped">Shipped</option>
+                        <option value="delivered">Delivered</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    </div>
+
+                    <button
+                      onClick={() => setSelectedOrder(null)}
+                      className="w-full bg-gray-200 text-gray-700 py-2 rounded font-semibold hover:bg-gray-300 transition-colors"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white rounded-lg shadow p-6 sticky top-8">
+                  <h2 className="text-xl font-poppins font-bold mb-4">Order Summary</h2>
+                  <div className="space-y-4 text-center">
+                    <ShoppingCart className="w-16 h-16 mx-auto text-gray-300" />
+                    <p className="text-gray-500">Select an order to view details</p>
+                    
+                    <div className="border-t pt-4">
+                      <div className="grid grid-cols-2 gap-4 text-center">
+                        <div>
+                          <p className="text-2xl font-bold text-primary">{orders.length}</p>
+                          <p className="text-sm text-gray-500">Total Orders</p>
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-yellow-600">
+                            {orders.filter(o => o.status === 'pending').length}
+                          </p>
+                          <p className="text-sm text-gray-500">Pending</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
