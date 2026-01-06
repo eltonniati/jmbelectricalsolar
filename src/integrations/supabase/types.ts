@@ -80,6 +80,33 @@ export type Database = {
         }
         Relationships: []
       }
+      feedback: {
+        Row: {
+          created_at: string
+          customer_email: string | null
+          customer_name: string
+          id: string
+          message: string
+          rating: number | null
+        }
+        Insert: {
+          created_at?: string
+          customer_email?: string | null
+          customer_name: string
+          id?: string
+          message: string
+          rating?: number | null
+        }
+        Update: {
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string
+          id?: string
+          message?: string
+          rating?: number | null
+        }
+        Relationships: []
+      }
       order_items: {
         Row: {
           created_at: string

@@ -9,6 +9,7 @@ import Products, { Product } from "@/components/Products";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
 import CartModal, { CartItem } from "@/components/CartModal";
+import FeedbackForm from "@/components/FeedbackForm";
 
 const Index = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -68,6 +69,7 @@ const Index = () => {
         <Contact />
       </main>
       <Footer />
+      <FeedbackForm />
       <CartModal
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
