@@ -1,7 +1,18 @@
+import { useEffect, useState } from "react";
 import { Star, StarHalf, User, UserRound } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import FeedbackForm from "./FeedbackForm";
 
-const testimonials = [
+interface Feedback {
+  id: string;
+  customer_name: string;
+  customer_email: string | null;
+  rating: number | null;
+  message: string;
+  created_at: string;
+}
+
+const staticTestimonials = [
   {
     text: "JMB Electrical arrived on time, diagnosed the issue quickly, and fixed it at a reasonable price. Highly professional!",
     rating: 5,
@@ -40,6 +51,23 @@ const RatingStars = ({ rating }: { rating: number }) => {
 };
 
 const Testimonials = () => {
+  const [feedbackList, setFeedbackList] = useState<Feedback[]>([]);
+
+  useEffect(() => {
+    const fetchFeedback = async () => {
+      const { data, error } = await supabase
+        .from("feedback")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (!error && data) {
+        setFeedbackList(data);
+      }
+    };
+
+    fetchFeedback();
+  }, []);
+
   return (
     <section id="feedback" className="py-20 bg-feedback">
       <div className="container">
@@ -54,9 +82,32 @@ const Testimonials = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {testimonials.map((testimonial, index) => (
+          {/* Database feedback */}
+          {feedbackList.map((feedback) => (
             <div
-              key={index}
+              key={feedback.id}
+              className="bg-card text-card-foreground rounded-lg p-8 shadow-md relative testimonial-quote"
+            >
+              <p className="text-foreground mb-4">{feedback.message}</p>
+              <RatingStars rating={feedback.rating || 5} />
+              <div className="flex items-center mt-6">
+                <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center mr-4">
+                  <User className="w-7 h-7 text-secondary" />
+                </div>
+                <div>
+                  <h4 className="font-poppins font-semibold">
+                    {feedback.customer_name}
+                  </h4>
+                  <p className="text-muted-foreground text-sm">Customer</p>
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {/* Static testimonials */}
+          {staticTestimonials.map((testimonial, index) => (
+            <div
+              key={`static-${index}`}
               className="bg-card text-card-foreground rounded-lg p-8 shadow-md relative testimonial-quote"
             >
               <p className="text-foreground mb-4">{testimonial.text}</p>
