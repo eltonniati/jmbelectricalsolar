@@ -19,12 +19,6 @@ const services = [
     description:
       "Professional solar panel installation and integration with your existing electrical system.",
   },
-  {
-    icon: BatteryCharging,
-    title: "EV Charger Installation",
-    description:
-      "Home and commercial electric vehicle charging station installation and setup.",
-  },
 ];
 
 const Services = () => {
