@@ -57,11 +57,9 @@ const FeedbackForm = () => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button
-          className="fixed bottom-24 right-6 z-50 rounded-full w-14 h-14 shadow-lg bg-primary hover:bg-primary/90"
-          size="icon"
-        >
-          <MessageSquare className="h-6 w-6" />
+        <Button className="gap-2">
+          <MessageSquare className="h-5 w-5" />
+          Share Your Feedback
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">

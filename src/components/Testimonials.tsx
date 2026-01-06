@@ -1,4 +1,5 @@
 import { Star, StarHalf, User, UserRound } from "lucide-react";
+import FeedbackForm from "./FeedbackForm";
 
 const testimonials = [
   {
@@ -46,9 +47,10 @@ const Testimonials = () => {
           <h2 className="text-3xl md:text-4xl font-poppins font-semibold text-secondary relative inline-block section-title-underline pb-4">
             Customer Feedback
           </h2>
-          <p className="text-muted-foreground mt-6">
+          <p className="text-muted-foreground mt-6 mb-4">
             What our clients say about our services
           </p>
+          <FeedbackForm />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
