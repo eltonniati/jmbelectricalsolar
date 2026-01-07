@@ -12,13 +12,11 @@ import CartModal, { CartItem } from "@/components/CartModal";
 import Admin from "@/components/Admin";
 import WhatsAppFloat from "@/components/WhatsAppFloat";
 import CompletedJobs from "@/components/CompletedJobs";
-import InstallPrompt from "@/components/InstallPrompt";
-import Install from "@/pages/Install";
 
 const App = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState<'main' | 'admin' | 'install'>('main');
+  const [currentPage, setCurrentPage] = useState<'main' | 'admin'>('main');
   const [adminProducts, setAdminProducts] = useState<Product[]>([]);
 
   // Load cart from localStorage
@@ -39,8 +37,6 @@ const App = () => {
       if (path === '/admin') {
         window.history.replaceState({}, '', '/#admin');
       }
-    } else if (path === '/install' || hash === '#install') {
-      setCurrentPage('install');
     }
   }, []);
 
@@ -108,11 +104,6 @@ const App = () => {
     setAdminProducts(products);
   };
 
-  // Render Install Page
-  if (currentPage === 'install') {
-    return <Install />;
-  }
-
   // Render Admin Page
   if (currentPage === 'admin') {
     return <Admin onLogout={handleAdminLogout} onBackToSite={handleBackToSite} onUpdateProducts={handleUpdateProducts} />;
@@ -151,7 +142,6 @@ const App = () => {
       </button>
       
       <WhatsAppFloat onClick={handleWhatsAppClick} />
-      <InstallPrompt />
       <CartModal
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
