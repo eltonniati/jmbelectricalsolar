@@ -273,7 +273,7 @@ Please log into the admin panel to update the order status.
               o.id === order.id 
                 ? { ...o, email_sent: true, email_sent_at: new Date().toISOString() }
                 : o
-            );
+            );//
             setOrders(updatedOrders);
             
             if (selectedOrder?.id === order.id) {
