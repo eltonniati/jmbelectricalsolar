@@ -140,7 +140,7 @@ const Footer = ({ onWhatsAppClick }: FooterProps) => {
               </li>
               <li className="flex items-center gap-2">
                 <Mail className="w-5 h-5 shrink-0" />
-                info@jmbelectrical.co.za
+                info@jmbcontractors.co.za
               </li>
               <li className="flex items-center gap-2">
                 <Clock className="w-5 h-5 shrink-0" />
