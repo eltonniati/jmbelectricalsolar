@@ -266,7 +266,7 @@ Please log into the admin panel to update the order status.
                 message: 'Email sent successfully via FormSubmit!' 
               }
             }));
-            toast.success('✅ Email sent toinfo@jmbelectrical.co.za');
+            toast.success('✅ Email sent to info@jmbelectrical.co.za');
             
             // Update order in state
             const updatedOrders = orders.map(o => 
@@ -347,7 +347,7 @@ Please log into the admin panel to update the order status.
         
         alert(`MANUAL EMAIL INSTRUCTIONS:
 1. Open your email client
-2. Send to:info@jmbelectrical.co.za
+2. Send to: info@jmbelectrical.co.za
 3. Subject: New Order - ${order.id.substring(0, 8)}
 4. Body:
 Customer: ${order.customer_name}
