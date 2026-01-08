@@ -128,7 +128,8 @@ const App = () => {
       </main>
       <Footer onWhatsAppClick={handleWhatsAppClick} />
       
-      {/* Admin Access Button - Updated for Vercel */}
+      {/* Admin Access Button - COMMENTED OUT FOR PUBLIC RELEASE */}
+      {/*
       <button
         onClick={() => {
           setCurrentPage('admin');
@@ -140,6 +141,7 @@ const App = () => {
       >
         <span className="text-xs">Admin</span>
       </button>
+      */}
       
       <WhatsAppFloat onClick={handleWhatsAppClick} />
       <CartModal
