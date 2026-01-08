@@ -2,6 +2,7 @@ import { useState } from "react";
 import { X, ShoppingCart, User, Mail, Phone, MapPin, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { sendPushNotification } from "@/lib/sendPushNotification";
 
 export interface CartItem {
   id: string;
@@ -84,6 +85,13 @@ const CartModal = ({ isOpen, onClose, items, onRemoveItem, onClearCart }: CartMo
         setIsSubmitting(false);
         return;
       }
+
+      // Send push notification to admin
+      await sendPushNotification(
+        "🛒 New Order Received!",
+        `Order from ${customerDetails.name} - R${total.toFixed(2)}`,
+        "/"
+      );
 
       toast.success("Order placed successfully! We will contact you soon.");
       
