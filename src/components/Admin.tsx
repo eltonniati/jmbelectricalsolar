@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Download, Plus, Trash2, LogOut, Shield, Package, FileText, ArrowLeft, Upload, X, Image, Camera, ShoppingCart, Eye, Bell, BellOff } from "lucide-react";
+import { Download, Plus, Trash2, LogOut, Shield, Package, FileText, ArrowLeft, Upload, X, Image, Camera, ShoppingCart, Eye, Bell, BellOff, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -88,6 +88,7 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [sendingEmail, setSendingEmail] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch products from database
@@ -158,11 +159,179 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
     }
   }, [isAuthenticated]);
 
+  // Function to send order confirmation email
+  const sendOrderConfirmationEmail = async (order: Order, orderItems: OrderItem[]) => {
+    setSendingEmail(true);
+    try {
+      // Format order details for email
+      const orderDate = new Date(order.created_at).toLocaleDateString('en-ZA', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      const itemsHtml = orderItems.map(item => `
+        <tr>
+          <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.product_name}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">R${item.product_price.toFixed(2)}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">R${item.subtotal.toFixed(2)}</td>
+        </tr>
+      `).join('');
+
+      const emailContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: #3b82f6; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
+            .content { background: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
+            .footer { background: #f1f1f1; padding: 10px; text-align: center; font-size: 12px; color: #666; }
+            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+            th { background: #f4f4f4; padding: 10px; text-align: left; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>JMB Electrical</h1>
+              <h2>New Order Received</h2>
+            </div>
+            <div class="content">
+              <p><strong>Order Number:</strong> ${order.id.substring(0, 8)}</p>
+              <p><strong>Order Date:</strong> ${orderDate}</p>
+              <p><strong>Status:</strong> ${order.status.charAt(0).toUpperCase() + order.status.slice(1)}</p>
+              
+              <h3>Customer Information</h3>
+              <p><strong>Name:</strong> ${order.customer_name}</p>
+              <p><strong>Email:</strong> ${order.customer_email}</p>
+              ${order.customer_phone ? `<p><strong>Phone:</strong> ${order.customer_phone}</p>` : ''}
+              ${order.customer_address ? `<p><strong>Address:</strong> ${order.customer_address}</p>` : ''}
+              ${order.notes ? `<p><strong>Notes:</strong> ${order.notes}</p>` : ''}
+              
+              <h3>Order Details</h3>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>Quantity</th>
+                    <th>Price</th>
+                    <th>Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${itemsHtml}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <td colspan="3" style="text-align: right; font-weight: bold; padding: 10px;">Total Amount:</td>
+                    <td style="font-weight: bold; padding: 10px;">R${order.total_amount.toFixed(2)}</td>
+                  </tr>
+                </tfoot>
+              </table>
+              
+              <p>Please log into the admin panel to update the order status.</p>
+            </div>
+            <div class="footer">
+              <p>© ${new Date().getFullYear()} JMB Electrical. All rights reserved.</p>
+              <p>This is an automated notification email.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      // Call Supabase Edge Function to send email
+      const { data, error } = await supabase.functions.invoke('send-order-email', {
+        body: {
+          to: 'eltonniati@gmail.com',
+          subject: `New Order Received - ${order.id.substring(0, 8)}`,
+          html: emailContent,
+          orderDetails: {
+            orderId: order.id,
+            customerName: order.customer_name,
+            customerEmail: order.customer_email,
+            totalAmount: order.total_amount,
+            status: order.status
+          }
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success('Order confirmation email sent to eltonniati@gmail.com');
+      return data;
+    } catch (error) {
+      console.error('Error sending email:', error);
+      toast.error('Failed to send email notification');
+      return null;
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  // Function to check for new orders and send email
+  const checkAndNotifyNewOrder = async (newOrders: Order[]) => {
+    if (!isAuthenticated || newOrders.length === 0) return;
+
+    // Get the latest order
+    const latestOrder = newOrders[0];
+    
+    // Check if this order was created recently (last 5 minutes)
+    const orderTime = new Date(latestOrder.created_at).getTime();
+    const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
+    
+    if (orderTime > fiveMinutesAgo && latestOrder.status === 'pending') {
+      const orderItems = await fetchOrderItems(latestOrder.id);
+      await sendOrderConfirmationEmail(latestOrder, orderItems);
+    }
+  };
+
+  // Modified fetchOrders to check for new orders
+  const fetchOrdersWithNotification = async () => {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error('Error fetching orders:', error);
+      toast.error('Failed to load orders');
+    } else {
+      const previousOrderCount = orders.length;
+      setOrders(data || []);
+      
+      // If new orders were added, check for notification
+      if (data && data.length > previousOrderCount) {
+        await checkAndNotifyNewOrder(data);
+      }
+    }
+  };
+
+  // Manual email sending function
+  const handleSendOrderEmail = async (order: Order) => {
+    if (!order) return;
+    
+    const orderItems = await fetchOrderItems(order.id);
+    await sendOrderConfirmationEmail(order, orderItems);
+  };
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (username === "admin" && password === "jmb2024") {
       setIsAuthenticated(true);
       toast.success("Welcome to Admin Panel");
+      // Check for any pending orders that might need email notification
+      setTimeout(async () => {
+        await fetchOrdersWithNotification();
+      }, 1000);
     } else {
       toast.error("Invalid credentials");
     }
@@ -1052,13 +1221,23 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
                               </span>
                             </td>
                             <td className="py-3 px-4">
-                              <button
-                                onClick={() => handleViewOrder(order)}
-                                className="text-blue-500 hover:text-blue-700 px-3 py-1 border border-blue-500 rounded hover:bg-blue-50 transition-colors text-sm flex items-center gap-1"
-                              >
-                                <Eye size={14} />
-                                View
-                              </button>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleViewOrder(order)}
+                                  className="text-blue-500 hover:text-blue-700 px-3 py-1 border border-blue-500 rounded hover:bg-blue-50 transition-colors text-sm flex items-center gap-1"
+                                >
+                                  <Eye size={14} />
+                                  View
+                                </button>
+                                <button
+                                  onClick={() => handleSendOrderEmail(order)}
+                                  disabled={sendingEmail}
+                                  className="text-green-500 hover:text-green-700 px-3 py-1 border border-green-500 rounded hover:bg-green-50 transition-colors text-sm flex items-center gap-1 disabled:opacity-50"
+                                >
+                                  <Mail size={14} />
+                                  Email
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -1138,6 +1317,15 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
                     </div>
 
                     <button
+                      onClick={() => handleSendOrderEmail(selectedOrder)}
+                      disabled={sendingEmail}
+                      className="w-full bg-green-500 text-white py-2 rounded font-semibold hover:bg-green-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      <Mail size={18} />
+                      {sendingEmail ? 'Sending Email...' : 'Send Order Email'}
+                    </button>
+
+                    <button
                       onClick={() => setSelectedOrder(null)}
                       className="w-full bg-gray-200 text-gray-700 py-2 rounded font-semibold hover:bg-gray-300 transition-colors"
                     >
@@ -1164,6 +1352,10 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
                           </p>
                           <p className="text-sm text-gray-500">Pending</p>
                         </div>
+                      </div>
+                      <div className="mt-4">
+                        <p className="text-sm text-gray-500">Email notifications will be sent automatically when new orders are received.</p>
+                        <Mail className="w-8 h-8 mx-auto text-gray-400 mt-2" />
                       </div>
                     </div>
                   </div>
