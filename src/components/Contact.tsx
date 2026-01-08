@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Phone, Mail, Clock, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { sendPushNotification } from "@/lib/sendPushNotification";
 
 interface ContactProps {
   onWhatsAppClick?: () => void;
@@ -49,10 +51,37 @@ const Contact = ({ onWhatsAppClick }: ContactProps) => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Thank you for your message! We will contact you soon.");
-    setFormData({ name: "", email: "", service: "", message: "" });
+    
+    try {
+      // Save contact submission to database
+      const { error } = await supabase.from("contact_submissions").insert({
+        full_name: formData.name,
+        email: formData.email,
+        service_type: formData.service || null,
+        message: formData.message || "No message provided",
+      });
+
+      if (error) {
+        console.error("Error saving contact:", error);
+        toast.error("Failed to send message. Please try again.");
+        return;
+      }
+
+      // Send push notification to admin
+      await sendPushNotification(
+        "📩 New Service Request!",
+        `${formData.name} is interested in ${formData.service || "your services"}`,
+        "/#contact"
+      );
+
+      toast.success("Thank you for your message! We will contact you soon.");
+      setFormData({ name: "", email: "", service: "", message: "" });
+    } catch (error) {
+      console.error("Error:", error);
+      toast.error("An error occurred. Please try again.");
+    }
   };
 
   return (

@@ -1,7 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { Download, Plus, Trash2, LogOut, Shield, Package, FileText, ArrowLeft, Upload, X, Image, Camera, ShoppingCart, Eye } from "lucide-react";
+import { Download, Plus, Trash2, LogOut, Shield, Package, FileText, ArrowLeft, Upload, X, Image, Camera, ShoppingCart, Eye, Bell, BellOff } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { usePwaInstall } from "@/hooks/usePwaInstall";
+import PwaInstallButton from "./PwaInstallButton";
+import NotificationButton from "./NotificationButton";
 
 interface Product {
   id: string;
@@ -577,7 +581,9 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
               <p className="text-sm text-gray-600">Manage products, jobs & orders</p>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <PwaInstallButton />
+            <NotificationButton />
             <button
               onClick={onBackToSite}
               className="flex items-center gap-2 bg-gray-200 text-gray-700 px-4 py-2 rounded hover:bg-gray-300 transition-colors"

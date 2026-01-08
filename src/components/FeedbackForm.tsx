@@ -13,6 +13,7 @@ import {
 import { MessageSquare, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { sendPushNotification } from "@/lib/sendPushNotification";
 
 const FeedbackForm = () => {
   const [open, setOpen] = useState(false);
@@ -42,6 +43,13 @@ const FeedbackForm = () => {
       });
 
       if (error) throw error;
+
+      // Send push notification to admin
+      await sendPushNotification(
+        "⭐ New Feedback Received!",
+        `${formData.customer_name} gave ${formData.rating} stars: "${formData.message.substring(0, 50)}..."`,
+        "/#testimonials"
+      );
 
       toast.success("Thank you for your feedback!");
       setFormData({ customer_name: "", customer_email: "", rating: 5, message: "" });
