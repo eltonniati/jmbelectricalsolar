@@ -293,7 +293,7 @@ Please log into the admin panel to update the order status.
 
       // Method 2: Try mailto as fallback
       const subject = `NEW ORDER - JMB Electrical - ${order.id.substring(0, 8)}`;
-      const mailtoLink = `mailto:eltonniati@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
+      const mailtoLink = `mailto:info@jmbelectrical.co.za?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
       
       // Open email client
       window.open(mailtoLink, '_blank');
