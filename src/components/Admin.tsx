@@ -223,7 +223,7 @@ Please log into the admin panel to update the order status.
       // Method 1: Try to send via FormSubmit (FREE service)
       try {
         // Using FormSubmit.co - FREE email service
-        const formSubmitResponse = await fetch("https://formsubmit.co/ajax/eltonniati@gmail.com", {
+        const formSubmitResponse = await fetch("https://formsubmit.co/ajax/info@jmbelectrical.co.za", {
           method: "POST",
           headers: {
             'Content-Type': 'application/json',
@@ -266,7 +266,7 @@ Please log into the admin panel to update the order status.
                 message: 'Email sent successfully via FormSubmit!' 
               }
             }));
-            toast.success('✅ Email sent to eltonniati@gmail.com');
+            toast.success('✅ Email sent to info@jmbelectrical.co.za');
             
             // Update order in state
             const updatedOrders = orders.map(o => 
@@ -347,7 +347,7 @@ Please log into the admin panel to update the order status.
         
         alert(`MANUAL EMAIL INSTRUCTIONS:
 1. Open your email client
-2. Send to: eltonniati@gmail.com
+2. Send to: info@jmbelectrical.co.za
 3. Subject: New Order - ${order.id.substring(0, 8)}
 4. Body:
 Customer: ${order.customer_name}
@@ -1437,7 +1437,7 @@ ${orderItemsText}`);
                     <li>New orders will trigger automatic emails</li>
                   </ol>
                   <p className="text-xs text-blue-500 mt-2">
-                    Sending to: <strong>eltonniati@gmail.com</strong>
+                    Sending to: <strong>info@jmbelectrical.co.za</strong>
                   </p>
                 </div>
               </div>
@@ -1581,7 +1581,7 @@ ${orderItemsText}`);
                           {orders.filter(o => o.email_sent).length} of {orders.length} emails sent
                         </p>
                         <p className="text-xs text-gray-400 mt-2">
-                          Emails sent to: <strong>eltonniati@gmail.com</strong>
+                          Emails sent to: <strong>info@jmbelectrical.co.za</strong>
                         </p>
                         <div className="mt-3 p-2 bg-green-50 rounded">
                           <p className="text-xs text-green-700">
