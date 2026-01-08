@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Download, Plus, Trash2, LogOut, Shield, Package, FileText, ArrowLeft, Upload, X, Image, Camera, ShoppingCart, Eye, Bell, BellOff, Mail } from "lucide-react";
+import { Download, Plus, Trash2, LogOut, Shield, Package, FileText, ArrowLeft, Upload, X, Image, Camera, ShoppingCart, Eye, Bell, BellOff, Mail, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -38,6 +38,8 @@ interface Order {
   notes: string | null;
   created_at: string;
   order_items?: OrderItem[];
+  email_sent?: boolean;
+  email_sent_at?: string;
 }
 
 interface OrderItem {
@@ -89,6 +91,12 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<{
+    [orderId: string]: {
+      status: 'idle' | 'sending' | 'success' | 'error';
+      message?: string;
+    }
+  }>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch products from database
@@ -159,138 +167,183 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
     }
   }, [isAuthenticated]);
 
-  // Function to send order confirmation email
-  const sendOrderConfirmationEmail = async (order: Order, orderItems: OrderItem[]) => {
+  // Simple email sending function using mailto: link as fallback
+  const sendOrderEmailSimple = async (order: Order, orderItems: OrderItem[]) => {
+    const orderDate = new Date(order.created_at).toLocaleDateString('en-ZA', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    // Format order items for email body
+    const itemsText = orderItems.map(item => 
+      `${item.product_name} (Qty: ${item.quantity}) - R${item.product_price.toFixed(2)} each = R${item.subtotal.toFixed(2)}`
+    ).join('\n');
+
+    const emailBody = `
+New Order Received - JMB Electrical
+
+Order Number: ${order.id.substring(0, 8)}
+Order Date: ${orderDate}
+Status: ${order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+
+CUSTOMER INFORMATION:
+Name: ${order.customer_name}
+Email: ${order.customer_email}
+Phone: ${order.customer_phone || 'Not provided'}
+Address: ${order.customer_address || 'Not provided'}
+Notes: ${order.notes || 'No notes'}
+
+ORDER DETAILS:
+${itemsText}
+
+TOTAL AMOUNT: R${order.total_amount.toFixed(2)}
+
+Please log into the admin panel to update the order status.
+This is an automated notification from JMB Electrical System.
+    `;
+
+    return emailBody;
+  };
+
+  // Send email using Supabase Edge Functions OR fallback to mailto
+  const sendOrderEmail = async (order: Order) => {
     setSendingEmail(true);
+    setEmailStatus(prev => ({
+      ...prev,
+      [order.id]: { status: 'sending', message: 'Sending email...' }
+    }));
+
     try {
-      // Format order details for email
-      const orderDate = new Date(order.created_at).toLocaleDateString('en-ZA', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-
-      const itemsHtml = orderItems.map(item => `
-        <tr>
-          <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.product_name}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">R${item.product_price.toFixed(2)}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">R${item.subtotal.toFixed(2)}</td>
-        </tr>
-      `).join('');
-
-      const emailContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: #3b82f6; color: white; padding: 20px; text-align: center; border-radius: 5px 5px 0 0; }
-            .content { background: #f9f9f9; padding: 20px; border: 1px solid #ddd; }
-            .footer { background: #f1f1f1; padding: 10px; text-align: center; font-size: 12px; color: #666; }
-            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-            th { background: #f4f4f4; padding: 10px; text-align: left; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>JMB Electrical</h1>
-              <h2>New Order Received</h2>
-            </div>
-            <div class="content">
-              <p><strong>Order Number:</strong> ${order.id.substring(0, 8)}</p>
-              <p><strong>Order Date:</strong> ${orderDate}</p>
-              <p><strong>Status:</strong> ${order.status.charAt(0).toUpperCase() + order.status.slice(1)}</p>
-              
-              <h3>Customer Information</h3>
-              <p><strong>Name:</strong> ${order.customer_name}</p>
-              <p><strong>Email:</strong> ${order.customer_email}</p>
-              ${order.customer_phone ? `<p><strong>Phone:</strong> ${order.customer_phone}</p>` : ''}
-              ${order.customer_address ? `<p><strong>Address:</strong> ${order.customer_address}</p>` : ''}
-              ${order.notes ? `<p><strong>Notes:</strong> ${order.notes}</p>` : ''}
-              
-              <h3>Order Details</h3>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Product</th>
-                    <th>Quantity</th>
-                    <th>Price</th>
-                    <th>Subtotal</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${itemsHtml}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td colspan="3" style="text-align: right; font-weight: bold; padding: 10px;">Total Amount:</td>
-                    <td style="font-weight: bold; padding: 10px;">R${order.total_amount.toFixed(2)}</td>
-                  </tr>
-                </tfoot>
-              </table>
-              
-              <p>Please log into the admin panel to update the order status.</p>
-            </div>
-            <div class="footer">
-              <p>© ${new Date().getFullYear()} JMB Electrical. All rights reserved.</p>
-              <p>This is an automated notification email.</p>
-            </div>
-          </div>
-        </body>
-        </html>
-      `;
-
-      // Call Supabase Edge Function to send email
-      const { data, error } = await supabase.functions.invoke('send-order-email', {
-        body: {
-          to: 'eltonniati@gmail.com',
-          subject: `New Order Received - ${order.id.substring(0, 8)}`,
-          html: emailContent,
-          orderDetails: {
+      const orderItems = await fetchOrderItems(order.id);
+      const emailBody = await sendOrderEmailSimple(order, orderItems);
+      
+      // Method 1: Try Supabase Edge Function first
+      try {
+        const { data, error } = await supabase.functions.invoke('send-order-notification', {
+          body: {
+            to: 'eltonniati@gmail.com',
+            subject: `New Order Received - ${order.id.substring(0, 8)}`,
+            body: emailBody,
             orderId: order.id,
             customerName: order.customer_name,
-            customerEmail: order.customer_email,
-            totalAmount: order.total_amount,
-            status: order.status
+            totalAmount: order.total_amount
           }
+        });
+
+        if (!error) {
+          // Update order with email sent status
+          const { error: updateError } = await supabase
+            .from('orders')
+            .update({
+              email_sent: true,
+              email_sent_at: new Date().toISOString()
+            })
+            .eq('id', order.id);
+
+          if (!updateError) {
+            setEmailStatus(prev => ({
+              ...prev,
+              [order.id]: { status: 'success', message: 'Email sent successfully!' }
+            }));
+            toast.success('Email notification sent to eltonniati@gmail.com');
+            
+            // Update order in state
+            const updatedOrders = orders.map(o => 
+              o.id === order.id 
+                ? { ...o, email_sent: true, email_sent_at: new Date().toISOString() }
+                : o
+            );
+            setOrders(updatedOrders);
+            
+            if (selectedOrder?.id === order.id) {
+              setSelectedOrder(prev => prev ? {
+                ...prev,
+                email_sent: true,
+                email_sent_at: new Date().toISOString()
+              } : null);
+            }
+          }
+        } else {
+          throw new Error('Edge function failed');
         }
-      });
+      } catch (edgeFunctionError) {
+        console.log('Edge function not available, using mailto fallback');
+        
+        // Method 2: Fallback to mailto link
+        const subject = `New Order Received - ${order.id.substring(0, 8)}`;
+        const mailtoLink = `mailto:eltonniati@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
+        
+        // Open email client
+        window.open(mailtoLink, '_blank');
+        
+        // Still update the database to track that email was attempted
+        const { error: updateError } = await supabase
+          .from('orders')
+          .update({
+            email_sent: true,
+            email_sent_at: new Date().toISOString()
+          })
+          .eq('id', order.id);
 
-      if (error) {
-        throw error;
+        if (!updateError) {
+          setEmailStatus(prev => ({
+            ...prev,
+            [order.id]: { 
+              status: 'success', 
+              message: 'Email client opened. Please send manually.' 
+            }
+          }));
+          toast.success('Email client opened. Please send the email manually.');
+          
+          // Update order in state
+          const updatedOrders = orders.map(o => 
+            o.id === order.id 
+              ? { ...o, email_sent: true, email_sent_at: new Date().toISOString() }
+              : o
+          );
+          setOrders(updatedOrders);
+        }
       }
-
-      toast.success('Order confirmation email sent to eltonniati@gmail.com');
-      return data;
     } catch (error) {
       console.error('Error sending email:', error);
+      setEmailStatus(prev => ({
+        ...prev,
+        [order.id]: { 
+          status: 'error', 
+          message: 'Failed to send email. Please try again.' 
+        }
+      }));
       toast.error('Failed to send email notification');
-      return null;
     } finally {
       setSendingEmail(false);
+      
+      // Clear status after 5 seconds
+      setTimeout(() => {
+        setEmailStatus(prev => ({
+          ...prev,
+          [order.id]: { status: 'idle' }
+        }));
+      }, 5000);
     }
   };
 
-  // Function to check for new orders and send email
+  // Check for new orders and send email automatically
   const checkAndNotifyNewOrder = async (newOrders: Order[]) => {
     if (!isAuthenticated || newOrders.length === 0) return;
 
     // Get the latest order
     const latestOrder = newOrders[0];
     
-    // Check if this order was created recently (last 5 minutes)
+    // Check if this order was created recently (last 5 minutes) and email not sent
     const orderTime = new Date(latestOrder.created_at).getTime();
     const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
     
-    if (orderTime > fiveMinutesAgo && latestOrder.status === 'pending') {
-      const orderItems = await fetchOrderItems(latestOrder.id);
-      await sendOrderConfirmationEmail(latestOrder, orderItems);
+    if (orderTime > fiveMinutesAgo && latestOrder.status === 'pending' && !latestOrder.email_sent) {
+      await sendOrderEmail(latestOrder);
     }
   };
 
@@ -313,14 +366,6 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
         await checkAndNotifyNewOrder(data);
       }
     }
-  };
-
-  // Manual email sending function
-  const handleSendOrderEmail = async (order: Order) => {
-    if (!order) return;
-    
-    const orderItems = await fetchOrderItems(order.id);
-    await sendOrderConfirmationEmail(order, orderItems);
   };
 
   const handleLogin = (e: React.FormEvent) => {
@@ -684,6 +729,47 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
       case 'delivered': return 'bg-green-100 text-green-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getEmailStatusIcon = (orderId: string) => {
+    const status = emailStatus[orderId]?.status || 'idle';
+    const order = orders.find(o => o.id === orderId);
+    
+    if (order?.email_sent) {
+      return <CheckCircle className="w-4 h-4 text-green-500" />;
+    }
+    
+    switch (status) {
+      case 'sending':
+        return <AlertCircle className="w-4 h-4 text-yellow-500 animate-pulse" />;
+      case 'success':
+        return <CheckCircle className="w-4 h-4 text-green-500" />;
+      case 'error':
+        return <XCircle className="w-4 h-4 text-red-500" />;
+      default:
+        return null;
+    }
+  };
+
+  const getEmailStatusText = (orderId: string) => {
+    const status = emailStatus[orderId]?.status || 'idle';
+    const order = orders.find(o => o.id === orderId);
+    
+    if (order?.email_sent) {
+      const sentDate = new Date(order.email_sent_at || '').toLocaleDateString();
+      return `Sent on ${sentDate}`;
+    }
+    
+    switch (status) {
+      case 'sending':
+        return 'Sending...';
+      case 'success':
+        return 'Sent!';
+      case 'error':
+        return 'Failed';
+      default:
+        return 'Not sent';
     }
   };
 
@@ -1193,6 +1279,7 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
                           <th className="py-3 px-4 text-left">Customer</th>
                           <th className="py-3 px-4 text-left">Total</th>
                           <th className="py-3 px-4 text-left">Status</th>
+                          <th className="py-3 px-4 text-left">Email Status</th>
                           <th className="py-3 px-4 text-left">Actions</th>
                         </tr>
                       </thead>
@@ -1221,6 +1308,14 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
                               </span>
                             </td>
                             <td className="py-3 px-4">
+                              <div className="flex items-center gap-2">
+                                {getEmailStatusIcon(order.id)}
+                                <span className="text-xs">
+                                  {getEmailStatusText(order.id)}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4">
                               <div className="flex gap-2">
                                 <button
                                   onClick={() => handleViewOrder(order)}
@@ -1230,12 +1325,12 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
                                   View
                                 </button>
                                 <button
-                                  onClick={() => handleSendOrderEmail(order)}
-                                  disabled={sendingEmail}
+                                  onClick={() => sendOrderEmail(order)}
+                                  disabled={sendingEmail && emailStatus[order.id]?.status === 'sending'}
                                   className="text-green-500 hover:text-green-700 px-3 py-1 border border-green-500 rounded hover:bg-green-50 transition-colors text-sm flex items-center gap-1 disabled:opacity-50"
                                 >
                                   <Mail size={14} />
-                                  Email
+                                  {emailStatus[order.id]?.status === 'sending' ? 'Sending...' : 'Email'}
                                 </button>
                               </div>
                             </td>
@@ -1300,6 +1395,29 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
                       </div>
                     </div>
 
+                    {/* Email Status Section */}
+                    <div className="border-t pt-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-sm text-gray-500">Email Notification Status</p>
+                        <div className="flex items-center gap-2">
+                          {getEmailStatusIcon(selectedOrder.id)}
+                          <span className={`text-sm font-medium ${
+                            selectedOrder.email_sent ? 'text-green-600' : 
+                            emailStatus[selectedOrder.id]?.status === 'sending' ? 'text-yellow-600' :
+                            emailStatus[selectedOrder.id]?.status === 'error' ? 'text-red-600' : 'text-gray-600'
+                          }`}>
+                            {getEmailStatusText(selectedOrder.id)}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {selectedOrder.email_sent && selectedOrder.email_sent_at && (
+                        <p className="text-xs text-gray-500">
+                          Last sent: {new Date(selectedOrder.email_sent_at).toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+
                     <div>
                       <label className="block text-sm font-medium mb-2">Update Status</label>
                       <select
@@ -1317,12 +1435,13 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
                     </div>
 
                     <button
-                      onClick={() => handleSendOrderEmail(selectedOrder)}
-                      disabled={sendingEmail}
+                      onClick={() => sendOrderEmail(selectedOrder)}
+                      disabled={sendingEmail && emailStatus[selectedOrder.id]?.status === 'sending'}
                       className="w-full bg-green-500 text-white py-2 rounded font-semibold hover:bg-green-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
                     >
                       <Mail size={18} />
-                      {sendingEmail ? 'Sending Email...' : 'Send Order Email'}
+                      {emailStatus[selectedOrder.id]?.status === 'sending' ? 'Sending Email...' : 
+                       selectedOrder.email_sent ? 'Resend Email' : 'Send Order Email'}
                     </button>
 
                     <button
@@ -1354,8 +1473,16 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
                         </div>
                       </div>
                       <div className="mt-4">
-                        <p className="text-sm text-gray-500">Email notifications will be sent automatically when new orders are received.</p>
-                        <Mail className="w-8 h-8 mx-auto text-gray-400 mt-2" />
+                        <div className="flex items-center justify-center gap-2 mb-2">
+                          <Mail className="w-5 h-5 text-gray-400" />
+                          <p className="text-sm font-medium">Email Notifications</p>
+                        </div>
+                        <p className="text-sm text-gray-500">
+                          {orders.filter(o => o.email_sent).length} of {orders.length} emails sent
+                        </p>
+                        <p className="text-xs text-gray-400 mt-2">
+                          New orders will trigger automatic email to eltonniati@gmail.com
+                        </p>
                       </div>
                     </div>
                   </div>
