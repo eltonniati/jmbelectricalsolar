@@ -255,7 +255,7 @@ Please log into the admin panel to update the order status.
             .update({
               email_sent: true,
               email_sent_at: new Date().toISOString()
-            })
+            } as any)
             .eq('id', order.id);
 
           if (!updateError) {
@@ -304,7 +304,7 @@ Please log into the admin panel to update the order status.
         .update({
           email_sent: true,
           email_sent_at: new Date().toISOString()
-        })
+        } as any)
         .eq('id', order.id);
 
       if (!updateError) {

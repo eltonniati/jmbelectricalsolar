@@ -155,6 +155,8 @@ export type Database = {
           customer_email: string
           customer_name: string
           customer_phone: string | null
+          email_sent: boolean | null
+          email_sent_at: string | null
           id: string
           notes: string | null
           status: string
@@ -167,6 +169,8 @@ export type Database = {
           customer_email: string
           customer_name: string
           customer_phone?: string | null
+          email_sent?: boolean | null
+          email_sent_at?: string | null
           id?: string
           notes?: string | null
           status?: string
@@ -179,6 +183,8 @@ export type Database = {
           customer_email?: string
           customer_name?: string
           customer_phone?: string | null
+          email_sent?: boolean | null
+          email_sent_at?: string | null
           id?: string
           notes?: string | null
           status?: string
