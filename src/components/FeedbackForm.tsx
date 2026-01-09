@@ -25,6 +25,75 @@ const FeedbackForm = () => {
     message: "",
   });
 
+  // Send feedback email notification
+  const sendFeedbackEmail = async (feedbackData: typeof formData) => {
+    try {
+      const stars = "⭐".repeat(feedbackData.rating);
+      const emailBody = `
+NEW FEEDBACK RECEIVED - JMB Electrical
+
+FEEDBACK DETAILS:
+================
+Rating: ${feedbackData.rating}/5 ${stars}
+Name: ${feedbackData.customer_name}
+Email: ${feedbackData.customer_email || 'Not provided'}
+
+Message:
+${feedbackData.message}
+
+TIMESTAMP: ${new Date().toLocaleString('en-ZA', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })}
+
+================================
+This is an automated notification from JMB Electrical website.
+`;
+
+      // Try FormSubmit service first
+      try {
+        const formSubmitResponse = await fetch("https://formsubmit.co/ajax/info@jmbcontractors.co.za", {
+          method: "POST",
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            _subject: `NEW FEEDBACK - JMB Electrical - ${feedbackData.rating} Stars from ${feedbackData.customer_name}`,
+            _template: "table",
+            customer_name: feedbackData.customer_name,
+            customer_email: feedbackData.customer_email || "Not provided",
+            rating: `${feedbackData.rating}/5 ${stars}`,
+            message: feedbackData.message,
+            timestamp: new Date().toISOString(),
+            fullMessage: emailBody
+          })
+        });
+
+        const result = await formSubmitResponse.json();
+        if (formSubmitResponse.ok && result.success === "true") {
+          return { success: true };
+        }
+      } catch (formSubmitError) {
+        console.log('FormSubmit failed, using mailto fallback');
+      }
+
+      // Fallback to mailto
+      const subject = `NEW FEEDBACK - JMB Electrical - ${feedbackData.rating} Stars`;
+      const mailtoLink = `mailto:info@jmbcontractors.co.za?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
+      window.open(mailtoLink, '_blank');
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error sending feedback email:', error);
+      return { success: false };
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -50,6 +119,9 @@ const FeedbackForm = () => {
         `${formData.customer_name} gave ${formData.rating} stars: "${formData.message.substring(0, 50)}..."`,
         "/#testimonials"
       );
+
+      // Send email notification automatically
+      await sendFeedbackEmail(formData);
 
       toast.success("Thank you for your feedback!");
       setFormData({ customer_name: "", customer_email: "", rating: 5, message: "" });
