@@ -32,6 +32,84 @@ const CartModal = ({ isOpen, onClose, items, onRemoveItem, onClearCart }: CartMo
 
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
+  // Send order email notification
+  const sendOrderEmail = async (orderData: typeof customerDetails, orderItems: typeof items, orderTotal: number) => {
+    try {
+      const itemsText = orderItems.map(item => 
+        `${item.name} (Qty: ${item.quantity}) - R${item.price.toFixed(2)} each = R${(item.price * item.quantity).toFixed(2)}`
+      ).join('\n');
+
+      const emailBody = `
+NEW ORDER RECEIVED - JMB Electrical
+
+ORDER DETAILS:
+==============
+${itemsText}
+
+TOTAL: R${orderTotal.toFixed(2)}
+
+CUSTOMER INFORMATION:
+====================
+Name: ${orderData.name}
+Email: ${orderData.email}
+Phone: ${orderData.phone || 'Not provided'}
+Address: ${orderData.address || 'Not provided'}
+Notes: ${orderData.notes || 'None'}
+
+TIMESTAMP: ${new Date().toLocaleString('en-ZA', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })}
+
+================================
+This is an automated notification from JMB Electrical website.
+`;
+
+      // Try FormSubmit service first
+      try {
+        const formSubmitResponse = await fetch("https://formsubmit.co/ajax/info@jmbcontractors.co.za", {
+          method: "POST",
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            _subject: `NEW ORDER - JMB Electrical - R${orderTotal.toFixed(2)} from ${orderData.name}`,
+            _template: "table",
+            customer_name: orderData.name,
+            customer_email: orderData.email,
+            customer_phone: orderData.phone || "Not provided",
+            total_amount: `R${orderTotal.toFixed(2)}`,
+            items: itemsText,
+            timestamp: new Date().toISOString(),
+            fullMessage: emailBody
+          })
+        });
+
+        const result = await formSubmitResponse.json();
+        if (formSubmitResponse.ok && result.success === "true") {
+          return { success: true };
+        }
+      } catch (formSubmitError) {
+        console.log('FormSubmit failed, using mailto fallback');
+      }
+
+      // Fallback to mailto
+      const subject = `NEW ORDER - JMB Electrical - R${orderTotal.toFixed(2)}`;
+      const mailtoLink = `mailto:info@jmbcontractors.co.za?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
+      window.open(mailtoLink, '_blank');
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error sending order email:', error);
+      return { success: false };
+    }
+  };
+
   const handleSubmitOrder = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -92,6 +170,9 @@ const CartModal = ({ isOpen, onClose, items, onRemoveItem, onClearCart }: CartMo
         `Order from ${customerDetails.name} - R${total.toFixed(2)}`,
         "/"
       );
+
+      // Send email notification automatically
+      await sendOrderEmail(customerDetails, items, total);
 
       toast.success("Order placed successfully! We will contact you soon.");
       
