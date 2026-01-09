@@ -172,7 +172,18 @@ This is an automated notification from JMB Electrical website.
       );
 
       // Send email notification automatically
-      await sendOrderEmail(customerDetails, items, total);
+      const emailResult = await sendOrderEmail(customerDetails, items, total);
+      
+      // Update order email_sent status in database
+      if (emailResult.success) {
+        await supabase
+          .from('orders')
+          .update({ 
+            email_sent: true, 
+            email_sent_at: new Date().toISOString() 
+          } as any)
+          .eq('id', orderData.id);
+      }
 
       toast.success("Order placed successfully! We will contact you soon.");
       
