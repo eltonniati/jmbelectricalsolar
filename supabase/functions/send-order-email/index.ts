@@ -1,6 +1,6 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY') || 'your_resend_api_key';
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,13 +10,16 @@ const corsHeaders = {
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const { to, subject, html, orderDetails } = await req.json();
 
-    // Send email using Resend (or your preferred email service)
+    console.log('Sending email to:', to);
+    console.log('Subject:', subject);
+
+    // Send email using Resend API directly
     const emailResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -24,20 +27,16 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'JMB Electrical <orders@jmbelectrical.co.za>',
-        to: [to],
+        from: 'JMB Electrical <onboarding@resend.dev>',
+        to: [to || 'info@jmbcontractors.co.za'],
         subject: subject,
         html: html,
-        tags: [
-          {
-            name: 'category',
-            value: 'order-notification'
-          }
-        ]
       }),
     });
 
     const emailResult = await emailResponse.json();
+
+    console.log('Email sent successfully:', emailResult);
 
     return new Response(
       JSON.stringify({ 
@@ -50,13 +49,14 @@ serve(async (req) => {
         status: 200,
       }
     );
-  } catch (error) {
-    console.error('Error sending email:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('Error sending email:', errorMessage);
     
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message 
+        error: errorMessage 
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
