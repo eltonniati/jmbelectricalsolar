@@ -32,44 +32,54 @@ const CartModal = ({ isOpen, onClose, items, onRemoveItem, onClearCart }: CartMo
 
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-  // Send order email notification
-  const sendOrderEmail = async (orderData: typeof customerDetails, orderItems: typeof items, orderTotal: number) => {
+  // SEND ORDER EMAIL FUNCTION (Same as Admin Panel)
+  const sendOrderEmailSimple = async (order: any, orderItems: typeof items, customerData: typeof customerDetails) => {
     try {
-      const itemsText = orderItems.map(item => 
-        `${item.name} (Qty: ${item.quantity}) - R${item.price.toFixed(2)} each = R${(item.price * item.quantity).toFixed(2)}`
-      ).join('\n');
-
-      const emailBody = `
-NEW ORDER RECEIVED - JMB Electrical
-
-ORDER DETAILS:
-==============
-${itemsText}
-
-TOTAL: R${orderTotal.toFixed(2)}
-
-CUSTOMER INFORMATION:
-====================
-Name: ${orderData.name}
-Email: ${orderData.email}
-Phone: ${orderData.phone || 'Not provided'}
-Address: ${orderData.address || 'Not provided'}
-Notes: ${orderData.notes || 'None'}
-
-TIMESTAMP: ${new Date().toLocaleString('en-ZA', {
+      const orderDate = new Date(order.created_at).toLocaleDateString('en-ZA', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit'
-      })}
+      });
 
-================================
-This is an automated notification from JMB Electrical website.
+      // Create email body
+      let emailBody = `
+NEW ORDER RECEIVED - JMB Electrical
+
+ORDER DETAILS:
+===============
+Order Number: ${order.id.substring(0, 8)}
+Order Date: ${orderDate}
+Status: ${order.status}
+
+CUSTOMER INFORMATION:
+====================
+Name: ${customerData.name}
+Email: ${customerData.email}
+${customerData.phone ? `Phone: ${customerData.phone}\n` : ''}
+${customerData.address ? `Address: ${customerData.address}\n` : ''}
+${customerData.notes ? `Notes: ${customerData.notes}\n` : ''}
+
+ORDER ITEMS:
+============
 `;
 
-      // Try FormSubmit service first
+      // Add order items
+      orderItems.forEach(item => {
+        emailBody += `• ${item.name} (Qty: ${item.quantity}) - R${item.price.toFixed(2)} each = R${(item.price * item.quantity).toFixed(2)}\n`;
+      });
+
+      emailBody += `
+TOTAL AMOUNT: R${order.total_amount.toFixed(2)}
+
+================================
+This is an automated notification from JMB Electrical Website.
+Please log into the admin panel to update the order status.
+`;
+
+      // Method 1: Try to send via FormSubmit (FREE service)
       try {
         const formSubmitResponse = await fetch("https://formsubmit.co/ajax/info@jmbcontractors.co.za", {
           method: "POST",
@@ -78,35 +88,74 @@ This is an automated notification from JMB Electrical website.
             'Accept': 'application/json'
           },
           body: JSON.stringify({
-            _subject: `NEW ORDER - JMB Electrical - R${orderTotal.toFixed(2)} from ${orderData.name}`,
+            _subject: `NEW ORDER - JMB Electrical - ${order.id.substring(0, 8)}`,
             _template: "table",
-            customer_name: orderData.name,
-            customer_email: orderData.email,
-            customer_phone: orderData.phone || "Not provided",
-            total_amount: `R${orderTotal.toFixed(2)}`,
-            items: itemsText,
-            timestamp: new Date().toISOString(),
-            fullMessage: emailBody
+            orderNumber: order.id.substring(0, 8),
+            orderDate: orderDate,
+            customerName: customerData.name,
+            customerEmail: customerData.email,
+            customerPhone: customerData.phone || 'Not provided',
+            customerAddress: customerData.address || 'Not provided',
+            orderNotes: customerData.notes || 'No notes',
+            orderItems: JSON.stringify(orderItems.map(item => ({
+              product_name: item.name,
+              quantity: item.quantity,
+              price: item.price,
+              subtotal: item.price * item.quantity
+            }))),
+            totalAmount: `R${order.total_amount.toFixed(2)}`,
+            orderStatus: order.status,
+            message: emailBody
           })
         });
 
         const result = await formSubmitResponse.json();
+
         if (formSubmitResponse.ok && result.success === "true") {
-          return { success: true };
+          // Success - update database
+          const { error: updateError } = await supabase
+            .from('orders')
+            .update({
+              email_sent: true,
+              email_sent_at: new Date().toISOString()
+            })
+            .eq('id', order.id);
+
+          if (!updateError) {
+            toast.success('✅ Order email sent to info@jmbcontractors.co.za');
+            return { success: true, method: 'formsubmit' };
+          }
         }
       } catch (formSubmitError) {
-        console.log('FormSubmit failed, using mailto fallback');
+        console.log('FormSubmit failed, trying mailto fallback...');
       }
 
-      // Fallback to mailto
-      const subject = `NEW ORDER - JMB Electrical - R${orderTotal.toFixed(2)}`;
+      // Method 2: Try mailto as fallback
+      const subject = `NEW ORDER - JMB Electrical - ${order.id.substring(0, 8)}`;
       const mailtoLink = `mailto:info@jmbcontractors.co.za?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
+      
+      // Open email client
       window.open(mailtoLink, '_blank');
       
-      return { success: true };
+      // Update database to track that email was attempted
+      const { error: updateError } = await supabase
+        .from('orders')
+        .update({
+          email_sent: true,
+          email_sent_at: new Date().toISOString()
+        })
+        .eq('id', order.id);
+
+      if (!updateError) {
+        toast.success('📧 Email client opened. Please send the email manually.');
+        return { success: true, method: 'mailto' };
+      }
+
+      return { success: true, method: 'database-only' };
+      
     } catch (error) {
-      console.error('Error sending order email:', error);
-      return { success: false };
+      console.error('Error sending email:', error);
+      return { success: false, error: error };
     }
   };
 
@@ -132,6 +181,8 @@ This is an automated notification from JMB Electrical website.
           total_amount: total,
           notes: customerDetails.notes || null,
           status: 'pending',
+          email_sent: false,
+          email_sent_at: null
         })
         .select()
         .single();
@@ -171,21 +222,14 @@ This is an automated notification from JMB Electrical website.
         "/"
       );
 
-      // Send email notification automatically
-      const emailResult = await sendOrderEmail(customerDetails, items, total);
+      // Send email notification using the same method as admin panel
+      const emailResult = await sendOrderEmailSimple(orderData, items, customerDetails);
       
-      // Update order email_sent status in database
       if (emailResult.success) {
-        await supabase
-          .from('orders')
-          .update({ 
-            email_sent: true, 
-            email_sent_at: new Date().toISOString() 
-          } as any)
-          .eq('id', orderData.id);
+        toast.success("Order placed successfully! Email notification sent.");
+      } else {
+        toast.success("Order placed successfully! We'll contact you soon.");
       }
-
-      toast.success("Order placed successfully! We will contact you soon.");
       
       // Reset form and cart
       setCustomerDetails({ name: "", email: "", phone: "", address: "", notes: "" });
