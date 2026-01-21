@@ -253,13 +253,13 @@ Please respond to this inquiry as soon as possible.
                 }
                 className="w-full px-4 py-3 border border-input rounded focus:outline-none focus:ring-2 focus:ring-secondary bg-background transition-colors"
               >
-                <option value="">Select a service</option>
+              <option value="">Select a service</option>
                 <option value="residential">Residential Wiring</option>
                 <option value="commercial">Commercial Electrical</option>
                 <option value="solar">Solar Installation</option>
-                <option value="ev">EV Charger Installation</option>
-                <option value="maintenance">Electrical Maintenance</option>
-                <option value="emergency">Emergency Electrical</option>
+                <option value="electric-fence">Electric Fence</option>
+                <option value="cctv">CCTV Systems</option>
+                <option value="gate-motor">Gate Motor & Access Control</option>
                 <option value="other">Other</option>
               </select>
             </div>
