@@ -101,8 +101,9 @@ const Footer = ({ onWhatsAppClick }: FooterProps) => {
                 "Residential Wiring",
                 "Commercial Electrical",
                 "Solar Installation",
-                "EV Charger Setup",
-                "Emergency Repair",
+                "Electric Fence",
+                "CCTV Systems",
+                "Gate Motor & Access Control",
               ].map((service) => (
                 <li key={service}>
                   <button
