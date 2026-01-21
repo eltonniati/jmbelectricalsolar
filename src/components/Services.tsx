@@ -1,4 +1,4 @@
-import { Home, Building2, SunMedium, BatteryCharging } from "lucide-react";
+import { Home, Building2, SunMedium, Fence, Camera, DoorOpen } from "lucide-react";
 
 const services = [
   {
@@ -18,6 +18,24 @@ const services = [
     title: "Solar Installation",
     description:
       "Professional solar panel installation and integration with your existing electrical system.",
+  },
+  {
+    icon: Fence,
+    title: "Electric Fence",
+    description:
+      "Professional electric fence installation and maintenance for enhanced property security.",
+  },
+  {
+    icon: Camera,
+    title: "CCTV Systems",
+    description:
+      "Complete CCTV camera installation and setup for 24/7 surveillance and peace of mind.",
+  },
+  {
+    icon: DoorOpen,
+    title: "Gate Motor & Access Control",
+    description:
+      "Automated gate motor installation, intercom systems, and smart access control solutions.",
   },
 ];
 
