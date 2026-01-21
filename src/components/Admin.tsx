@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Download, Plus, Trash2, LogOut, Shield, Package, FileText, ArrowLeft, Upload, X, Image, Camera, ShoppingCart, Eye, Bell, BellOff, Mail, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { Download, Plus, Trash2, LogOut, Shield, Package, FileText, ArrowLeft, Upload, X, Image as ImageIcon, Camera, ShoppingCart, Eye, Bell, BellOff, Mail, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -431,21 +431,56 @@ ${orderItemsText}`);
     }
   };
 
+  const convertToWebP = (file: File): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Could not get canvas context'));
+          return;
+        }
+        ctx.drawImage(img, 0, 0);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error('Could not convert to WebP'));
+            }
+          },
+          'image/webp',
+          0.85
+        );
+      };
+      img.onerror = () => reject(new Error('Could not load image'));
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   const uploadImageToStorage = async (file: File): Promise<string | null> => {
     setUploadingImage(true);
     try {
       const fileExt = file.name.split('.').pop()?.toLowerCase();
-      if (fileExt !== 'jpg' && fileExt !== 'jpeg' && fileExt !== 'png') {
-        toast.error("Only JPG and PNG images are allowed");
+      const validExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff'];
+      if (!fileExt || !validExts.includes(fileExt)) {
+        toast.error("Only image files are allowed (JPG, PNG, GIF, WebP, BMP, TIFF)");
         return null;
       }
 
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      // Convert to WebP for better performance
+      const webpBlob = await convertToWebP(file);
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.webp`;
       const filePath = `uploads/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('images')
-        .upload(filePath, file);
+        .upload(filePath, webpBlob, {
+          contentType: 'image/webp'
+        });
 
       if (uploadError) {
         console.error('Upload error:', uploadError);
@@ -457,6 +492,7 @@ ${orderItemsText}`);
         .from('images')
         .getPublicUrl(filePath);
 
+      toast.success('Image converted to WebP and uploaded!');
       return publicUrl;
     } catch (error) {
       console.error('Upload error:', error);
@@ -470,15 +506,15 @@ ${orderItemsText}`);
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const validTypes = ['image/jpeg', 'image/png'];
+      const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/bmp', 'image/tiff'];
       if (!validTypes.includes(file.type)) {
-        toast.error("Only JPG and PNG images are allowed");
+        toast.error("Only image files are allowed");
         return;
       }
 
-      const maxSize = 5 * 1024 * 1024;
+      const maxSize = 10 * 1024 * 1024;
       if (file.size > maxSize) {
-        toast.error("Image size should be less than 5MB");
+        toast.error("Image size should be less than 10MB");
         return;
       }
 
