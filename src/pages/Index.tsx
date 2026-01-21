@@ -10,6 +10,7 @@ import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
 import CartModal, { CartItem } from "@/components/CartModal";
 import FeedbackForm from "@/components/FeedbackForm";
+import FAQ from "@/components/FAQ";
 
 const Index = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -66,6 +67,7 @@ const Index = () => {
         <Testimonials />
         <Team />
         <Products onAddToCart={handleAddToCart} />
+        <FAQ />
         <Contact />
       </main>
       <Footer />
