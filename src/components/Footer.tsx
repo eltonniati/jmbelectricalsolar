@@ -1,10 +1,12 @@
-import { Facebook, Twitter, Instagram, Linkedin, MapPin, Phone, Mail, Clock, MessageCircle } from "lucide-react";
+import { Facebook, Twitter, Instagram, MapPin, Phone, Mail, Clock, MessageCircle } from "lucide-react";
+import { useContactEmail } from "@/hooks/useContactEmail";
 
 interface FooterProps {
   onWhatsAppClick?: () => void;
 }
 
 const Footer = ({ onWhatsAppClick }: FooterProps) => {
+  const { contactEmail } = useContactEmail();
   const handleScroll = (href: string) => {
     const element = document.querySelector(href);
     if (element) {
@@ -141,7 +143,7 @@ const Footer = ({ onWhatsAppClick }: FooterProps) => {
               </li>
               <li className="flex items-center gap-2">
                 <Mail className="w-5 h-5 shrink-0" />
-                info@jmbcontractors.co.za
+                {contactEmail}
               </li>
               <li className="flex items-center gap-2">
                 <Clock className="w-5 h-5 shrink-0" />

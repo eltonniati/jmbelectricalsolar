@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from "react";
-import { Download, Plus, Trash2, LogOut, Shield, Package, FileText, ArrowLeft, Upload, X, Image as ImageIcon, Camera, ShoppingCart, Eye, Bell, BellOff, Mail, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { Download, Plus, Trash2, LogOut, Shield, Package, FileText, ArrowLeft, Upload, X, Image as ImageIcon, Camera, ShoppingCart, Eye, Bell, BellOff, Mail, CheckCircle, XCircle, AlertCircle, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { usePwaInstall } from "@/hooks/usePwaInstall";
+import { useContactEmail } from "@/hooks/useContactEmail";
 import PwaInstallButton from "./PwaInstallButton";
 import NotificationButton from "./NotificationButton";
 
@@ -60,7 +61,7 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [activeTab, setActiveTab] = useState<'products' | 'jobs' | 'orders'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'jobs' | 'orders' | 'settings'>('products');
   const [isLoading, setIsLoading] = useState(false);
   
   // Products state
@@ -98,6 +99,16 @@ const Admin = ({ onLogout, onBackToSite, onUpdateProducts }: AdminProps) => {
     }
   }>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Settings state
+  const { contactEmail, updateContactEmail, refetch: refetchEmail } = useContactEmail();
+  const [newContactEmail, setNewContactEmail] = useState("");
+  const [savingEmail, setSavingEmail] = useState(false);
+
+  // Sync email input with fetched email
+  useEffect(() => {
+    setNewContactEmail(contactEmail);
+  }, [contactEmail]);
 
   // Fetch products from database
   const fetchProducts = async () => {
@@ -223,7 +234,7 @@ Please log into the admin panel to update the order status.
       // Method 1: Try to send via FormSubmit (FREE service)
       try {
         // Using FormSubmit.co - FREE email service
-        const formSubmitResponse = await fetch("https://formsubmit.co/ajax/info@jmbcontractors.co.za", {
+        const formSubmitResponse = await fetch(`https://formsubmit.co/ajax/${contactEmail}`, {
           method: "POST",
           headers: {
             'Content-Type': 'application/json',
@@ -266,7 +277,7 @@ Please log into the admin panel to update the order status.
                 message: 'Email sent successfully via FormSubmit!' 
               }
             }));
-            toast.success('✅ Email sent to info@jmbcontractors.co.za');
+            toast.success(`✅ Email sent to ${contactEmail}`);
             
             // Update order in state
             const updatedOrders = orders.map(o => 
@@ -293,7 +304,7 @@ Please log into the admin panel to update the order status.
 
       // Method 2: Try mailto as fallback
       const subject = `NEW ORDER - JMB Electrical - ${order.id.substring(0, 8)}`;
-      const mailtoLink = `mailto:info@jmbcontractors.co.za?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
+      const mailtoLink = `mailto:${contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
       
       // Open email client
       window.open(mailtoLink, '_blank');
@@ -347,7 +358,7 @@ Please log into the admin panel to update the order status.
         
         alert(`MANUAL EMAIL INSTRUCTIONS:
 1. Open your email client
-2. Send to: info@jmbcontractors.co.za
+2. Send to: ${contactEmail}
 3. Subject: New Order - ${order.id.substring(0, 8)}
 4. Body:
 Customer: ${order.customer_name}
@@ -1010,6 +1021,17 @@ ${orderItemsText}`);
               <ShoppingCart className="inline w-5 h-5 mr-2" />
               Orders ({orders.length})
             </button>
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`py-4 px-6 font-medium border-b-2 transition-colors ${
+                activeTab === 'settings'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Settings className="inline w-5 h-5 mr-2" />
+              Settings
+            </button>
           </div>
         </div>
       </div>
@@ -1473,7 +1495,7 @@ ${orderItemsText}`);
                     <li>New orders will trigger automatic emails</li>
                   </ol>
                   <p className="text-xs text-blue-500 mt-2">
-                    Sending to: <strong>info@jmbcontractors.co.za</strong>
+                    Sending to: <strong>{contactEmail}</strong>
                   </p>
                 </div>
               </div>
@@ -1617,7 +1639,7 @@ ${orderItemsText}`);
                           {orders.filter(o => o.email_sent).length} of {orders.length} emails sent
                         </p>
                         <p className="text-xs text-gray-400 mt-2">
-                          Emails sent to: <strong>info@jmbcontractors.co.za</strong>
+                          Emails sent to: <strong>{contactEmail}</strong>
                         </p>
                         <div className="mt-3 p-2 bg-green-50 rounded">
                           <p className="text-xs text-green-700">
@@ -1629,6 +1651,71 @@ ${orderItemsText}`);
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'settings' && (
+          <div className="max-w-2xl mx-auto">
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-xl font-poppins font-bold mb-6 flex items-center gap-2">
+                <Settings className="w-6 h-6" />
+                Settings
+              </h2>
+              
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Mail className="w-5 h-5" />
+                    Contact Email Address
+                  </h3>
+                  <p className="text-gray-600 text-sm mb-4">
+                    This email address will be used to receive orders, contact form submissions, and customer feedback. 
+                    It will also be displayed on the website.
+                  </p>
+                  
+                  <div className="flex gap-3">
+                    <input
+                      type="email"
+                      value={newContactEmail}
+                      onChange={(e) => setNewContactEmail(e.target.value)}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                      placeholder="Enter contact email address"
+                      required
+                    />
+                    <button
+                      onClick={async () => {
+                        if (!newContactEmail || !newContactEmail.includes('@')) {
+                          toast.error('Please enter a valid email address');
+                          return;
+                        }
+                        setSavingEmail(true);
+                        const success = await updateContactEmail(newContactEmail);
+                        setSavingEmail(false);
+                        if (success) {
+                          toast.success('Email address updated successfully!');
+                          refetchEmail();
+                        } else {
+                          toast.error('Failed to update email address');
+                        }
+                      }}
+                      disabled={savingEmail || newContactEmail === contactEmail}
+                      className="bg-primary text-white px-6 py-2 rounded hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {savingEmail ? 'Saving...' : 'Save'}
+                    </button>
+                  </div>
+                  
+                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-700">
+                      <strong>Current Email:</strong> {contactEmail}
+                    </p>
+                    <p className="text-xs text-blue-600 mt-1">
+                      This email receives all order notifications, contact form submissions, and feedback.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
