@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Phone, Mail, Clock, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { sendPushNotification } from "@/lib/sendPushNotification";
+import { useContactEmail } from "@/hooks/useContactEmail";
 
 interface ContactProps {
   onWhatsAppClick?: () => void;
 }
 
-const contactInfo = [
+const getContactInfo = (email: string) => [
   {
     icon: Phone,
     title: "Call Us",
@@ -24,7 +25,7 @@ const contactInfo = [
   {
     icon: Mail,
     title: "Email Us",
-    line1: "info@jmbcontractors.co.za",
+    line1: email,
     line2: "Quotes & Inquiries",
   },
   {
@@ -36,6 +37,7 @@ const contactInfo = [
 ];
 
 const Contact = ({ onWhatsAppClick }: ContactProps) => {
+  const { contactEmail } = useContactEmail();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -81,7 +83,7 @@ Please respond to this inquiry as soon as possible.
 
       // Method 1: Try FormSubmit service
       try {
-        const formSubmitResponse = await fetch("https://formsubmit.co/ajax/info@jmbcontractors.co.za", {
+        const formSubmitResponse = await fetch(`https://formsubmit.co/ajax/${contactEmail}`, {
           method: "POST",
           headers: {
             'Content-Type': 'application/json',
@@ -109,7 +111,7 @@ Please respond to this inquiry as soon as possible.
 
       // Method 2: Fallback to mailto
       const subject = `NEW CONTACT - JMB Electrical - ${contactData.name}`;
-      const mailtoLink = `mailto:info@jmbcontractors.co.za?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
+      const mailtoLink = `mailto:${contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
       window.open(mailtoLink, '_blank');
       
       return { success: true, method: 'mailto' };
@@ -186,7 +188,7 @@ Please respond to this inquiry as soon as possible.
 
         <div className="max-w-4xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-            {contactInfo.map((info, index) => (
+            {getContactInfo(contactEmail).map((info, index) => (
               <div 
                 key={index} 
                 className="text-center cursor-pointer group"
@@ -282,7 +284,7 @@ Please respond to this inquiry as soon as possible.
                 Please send the pre-filled email to complete your inquiry.
               </p>
               <p className="text-xs text-blue-600 mt-1">
-                Emails are sent to: <strong>info@jmbcontractors.co.za</strong>
+                Emails are sent to: <strong>{contactEmail}</strong>
               </p>
             </div>
 

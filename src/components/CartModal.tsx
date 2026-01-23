@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, ShoppingCart, User, Mail, Phone, MapPin, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { sendPushNotification } from "@/lib/sendPushNotification";
+import { useContactEmail } from "@/hooks/useContactEmail";
 
 export interface CartItem {
   id: string;
@@ -20,6 +21,7 @@ interface CartModalProps {
 }
 
 const CartModal = ({ isOpen, onClose, items, onRemoveItem, onClearCart }: CartModalProps) => {
+  const { contactEmail } = useContactEmail();
   const [showCheckout, setShowCheckout] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customerDetails, setCustomerDetails] = useState({
@@ -81,7 +83,7 @@ Please log into the admin panel to update the order status.
 
       // Method 1: Try to send via FormSubmit (FREE service)
       try {
-        const formSubmitResponse = await fetch("https://formsubmit.co/ajax/info@jmbcontractors.co.za", {
+        const formSubmitResponse = await fetch(`https://formsubmit.co/ajax/${contactEmail}`, {
           method: "POST",
           headers: {
             'Content-Type': 'application/json',
@@ -122,7 +124,7 @@ Please log into the admin panel to update the order status.
             .eq('id', order.id);
 
           if (!updateError) {
-            toast.success('✅ Order email sent to info@jmbcontractors.co.za');
+            toast.success(`✅ Order email sent to ${contactEmail}`);
             return { success: true, method: 'formsubmit' };
           }
         }
@@ -132,7 +134,7 @@ Please log into the admin panel to update the order status.
 
       // Method 2: Try mailto as fallback
       const subject = `NEW ORDER - JMB Electrical - ${order.id.substring(0, 8)}`;
-      const mailtoLink = `mailto:info@jmbcontractors.co.za?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
+      const mailtoLink = `mailto:${contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
       
       // Open email client
       window.open(mailtoLink, '_blank');

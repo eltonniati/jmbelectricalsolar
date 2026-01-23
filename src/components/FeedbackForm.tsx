@@ -14,8 +14,10 @@ import { MessageSquare, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { sendPushNotification } from "@/lib/sendPushNotification";
+import { useContactEmail } from "@/hooks/useContactEmail";
 
 const FeedbackForm = () => {
+  const { contactEmail } = useContactEmail();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -56,7 +58,7 @@ This is an automated notification from JMB Electrical website.
 
       // Try FormSubmit service first
       try {
-        const formSubmitResponse = await fetch("https://formsubmit.co/ajax/info@jmbcontractors.co.za", {
+        const formSubmitResponse = await fetch(`https://formsubmit.co/ajax/${contactEmail}`, {
           method: "POST",
           headers: {
             'Content-Type': 'application/json',
@@ -84,7 +86,7 @@ This is an automated notification from JMB Electrical website.
 
       // Fallback to mailto
       const subject = `NEW FEEDBACK - JMB Electrical - ${feedbackData.rating} Stars`;
-      const mailtoLink = `mailto:info@jmbcontractors.co.za?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
+      const mailtoLink = `mailto:${contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
       window.open(mailtoLink, '_blank');
       
       return { success: true };

@@ -28,7 +28,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         from: 'JMB Electrical <onboarding@resend.dev>',
-        to: [to || 'info@jmbcontractors.co.za'],
+        to: [to],
         subject: subject,
         html: html,
       }),
