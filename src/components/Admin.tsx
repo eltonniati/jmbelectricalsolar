@@ -986,54 +986,50 @@ ${orderItemsText}`);
 
       {/* Tab Navigation */}
       <div className="bg-white border-b">
-        <div className="container mx-auto px-4 overflow-x-auto">
-          <div className="flex gap-2 sm:gap-4 min-w-max">
+        <div className="container mx-auto px-4">
+          <div className="flex gap-4">
             <button
               onClick={() => setActiveTab('products')}
-              className={`py-4 px-3 sm:px-6 font-medium border-b-2 transition-colors whitespace-nowrap text-sm sm:text-base ${
+              className={`py-4 px-6 font-medium border-b-2 transition-colors ${
                 activeTab === 'products'
                   ? 'border-primary text-primary'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              <Package className="inline w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Products</span>
-              <span className="sm:hidden">Prod</span>
-              <span className="ml-1">({products.length})</span>
+              <Package className="inline w-5 h-5 mr-2" />
+              Products ({products.length})
             </button>
             <button
               onClick={() => setActiveTab('jobs')}
-              className={`py-4 px-3 sm:px-6 font-medium border-b-2 transition-colors whitespace-nowrap text-sm sm:text-base ${
+              className={`py-4 px-6 font-medium border-b-2 transition-colors ${
                 activeTab === 'jobs'
                   ? 'border-primary text-primary'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              <Camera className="inline w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Completed Jobs</span>
-              <span className="sm:hidden">Jobs</span>
-              <span className="ml-1">({completedJobs.length})</span>
+              <Camera className="inline w-5 h-5 mr-2" />
+              Completed Jobs ({completedJobs.length})
             </button>
             <button
               onClick={() => setActiveTab('orders')}
-              className={`py-4 px-3 sm:px-6 font-medium border-b-2 transition-colors whitespace-nowrap text-sm sm:text-base ${
+              className={`py-4 px-6 font-medium border-b-2 transition-colors ${
                 activeTab === 'orders'
                   ? 'border-primary text-primary'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              <ShoppingCart className="inline w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" />
+              <ShoppingCart className="inline w-5 h-5 mr-2" />
               Orders ({orders.length})
             </button>
             <button
               onClick={() => setActiveTab('settings')}
-              className={`py-4 px-3 sm:px-6 font-medium border-b-2 transition-colors whitespace-nowrap text-sm sm:text-base ${
+              className={`py-4 px-6 font-medium border-b-2 transition-colors ${
                 activeTab === 'settings'
                   ? 'border-primary text-primary'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              <Settings className="inline w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-2" />
+              <Settings className="inline w-5 h-5 mr-2" />
               Settings
             </button>
           </div>
