@@ -153,9 +153,20 @@ const Footer = ({ onWhatsAppClick }: FooterProps) => {
           </div>
         </div>
 
-        <div className="border-t border-white/10 pt-8 text-center text-secondary-foreground/60">
+        <div className="border-t border-white/10 pt-8 text-center text-secondary-foreground/60 space-y-2">
           <p>
             © 2024 JMB ELECTRICAL. All rights reserved. | Pretoria, South Africa
+          </p>
+          <p className="text-sm">
+            Developed by{" "}
+            <a
+              href="https://eaglevisionservices.co.za"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              Eagle Vision Services
+            </a>
           </p>
         </div>
       </div>
