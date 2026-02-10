@@ -3,9 +3,7 @@ import { Download, Plus, Trash2, LogOut, Shield, Package, FileText, ArrowLeft, U
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
-import { usePwaInstall } from "@/hooks/usePwaInstall";
 import { useContactEmail } from "@/hooks/useContactEmail";
-import PwaInstallButton from "./PwaInstallButton";
 import NotificationButton from "./NotificationButton";
 
 interface Product {
@@ -964,7 +962,6 @@ ${orderItemsText}`);
             </div>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <PwaInstallButton />
             <NotificationButton />
             <button
               onClick={onBackToSite}
